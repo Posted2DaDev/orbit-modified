@@ -5,6 +5,7 @@ import type { pageWithLayout } from "@/layoutTypes"
 import { loginState, workspacestate } from "@/state"
 import Workspace from "@/layouts/workspace"
 import Sessions from "@/components/home/sessions"
+import Notices from "@/components/home/notices"
 import Docs from "@/components/home/docs"
 import Policies from "@/components/home/policies"
 import randomText from "@/utils/randomText"
@@ -30,6 +31,7 @@ import {
   IconArrowRight,
   IconGift,
   IconShield,
+  IconAlertTriangle,
 } from "@tabler/icons-react"
 import clsx from "clsx"
 
@@ -67,6 +69,13 @@ const Home: pageWithLayout = () => {
       description: "Ongoing and upcoming sessions",
       color: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20",
     },
+    notices: {
+      component: Notices,
+      icon: IconAlertTriangle,
+      title: "Notices",
+      description: "Staff currently on notice",
+      color: "bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20",
+    },
     documents: {
       component: Docs,
       icon: IconFileText,
@@ -77,7 +86,7 @@ const Home: pageWithLayout = () => {
     policies: {
       component: Policies,
       icon: IconShield,
-      title: "Policy Dashboard",
+      title: "Policies",
       description: "Track your policy acknowledgments (BETA)",
       color: "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20",
     },
@@ -196,12 +205,16 @@ const Home: pageWithLayout = () => {
             />
           </div>
         )}
-        <div className="mb-8 z-0 relative">
-          <Birthdays />
-        </div>
-        <div className="mb-8 z-0 relative">
-          <NewToTeam />
-        </div>
+        {Array.isArray(workspace.settings.widgets) && workspace.settings.widgets.includes("birthdays") && (
+          <div className="mb-8 z-0 relative">
+            <Birthdays />
+          </div>
+        )}
+        {Array.isArray(workspace.settings.widgets) && workspace.settings.widgets.includes("new_members") && (
+          <div className="mb-8 z-0 relative">
+            <NewToTeam />
+          </div>
+        )}
         <div className="mb-8 z-0 relative">
           <StickyNoteAnnouncement />
         </div>
