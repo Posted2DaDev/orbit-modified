@@ -16,6 +16,7 @@ type User = {
 	registered: boolean
 	birthdayDay?: number | null
 	birthdayMonth?: number | null
+	isOwner?: boolean
 }
 
 type Data = {
@@ -26,12 +27,39 @@ type Data = {
 		groupId: number
 		groupthumbnail: string
 		groupname: string
+		isDeleted?: boolean
+		isSuspended?: boolean
 	}[]
 }
 
 // Simple in-memory cache to prevent excessive database queries
 const userCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 30000; // 30 seconds
+
+// In-memory cache for Roblox group lookups to reduce rate limits
+type GroupCacheEntry = { name: string; logo: string; timestamp: number };
+const groupCache = new Map<number, GroupCacheEntry>();
+const GROUP_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getGroupCached = async (groupId: number) => {
+	const now = Date.now();
+	const cached = groupCache.get(groupId);
+	if (cached && now - cached.timestamp < GROUP_CACHE_DURATION) return cached;
+
+	try {
+		const [group, logo] = await Promise.all([
+			noblox.getGroup(groupId),
+			noblox.getLogo(groupId),
+		]);
+		const entry = { name: group.name, logo, timestamp: now };
+		groupCache.set(groupId, entry);
+		return entry;
+	} catch (e) {
+		// On failure, return stale cache if available to avoid hard fail
+		if (cached) return cached;
+		throw e;
+	}
+};
 
 export default withSessionRoute(handler);
 
@@ -69,15 +97,23 @@ export async function handler(
 		registered: dbuser?.registered || false,
 		birthdayDay: dbuser?.birthdayDay ?? null,
 		birthdayMonth: dbuser?.birthdayMonth ?? null,
+		isOwner: dbuser?.isOwner || false,
 	}
 	
 	let roles: any[] = [];
 	if (dbuser?.roles?.length) {
 		for (const role of dbuser.roles) {
+			const groupData = await getGroupCached(role.workspaceGroupId);
+			const workspace = await prisma.workspace.findUnique({
+				where: { groupId: role.workspaceGroupId },
+				select: { isDeleted: true, isSuspended: true }
+			});
 			roles.push({
 				groupId: role.workspaceGroupId,
-				groupThumbnail: await noblox.getLogo(role.workspaceGroupId),
-				groupName: await noblox.getGroup(role.workspaceGroupId).then(group => group.name),
+				groupThumbnail: groupData.logo,
+				groupName: groupData.name,
+				isDeleted: workspace?.isDeleted ?? false,
+				isSuspended: workspace?.isSuspended ?? false,
 			})
 		}
 	};

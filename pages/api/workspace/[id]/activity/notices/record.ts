@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { withSessionRoute } from "@/lib/withSession";
 import prisma from "@/utils/database";
+import { getConfig } from "@/utils/configEngine";
+import { getUsername, getThumbnail } from "@/utils/userinfoEngine";
+import axios from "axios";
 
 export default withSessionRoute(async function handler(
   req: NextApiRequest,
@@ -98,6 +101,57 @@ export default withSessionRoute(async function handler(
         approved: true,
       },
     });
+
+    // Send webhook for admin-created approved notice
+    const webhookConfig = await getConfig("inactivity", workspaceGroupId);
+    if (webhookConfig?.webhookEnabled && webhookConfig?.webhookUrl) {
+      try {
+        const target = await prisma.user.findFirst({ where: { userid: BigInt(userId) } });
+        const creator = await prisma.user.findFirst({ where: { userid: BigInt(currentUserId) } });
+
+        const username = target?.username || (await getUsername(BigInt(userId)));
+        const thumbnail = target?.picture || (await getThumbnail(BigInt(userId)));
+        const reviewerName = creator?.username || (await getUsername(BigInt(currentUserId)));
+        const workspace = await prisma.workspace.findUnique({ where: { groupId: workspaceGroupId } });
+
+        const startDate = start.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+        const endDate = end.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+
+        await axios.post(webhookConfig.webhookUrl, {
+          embeds: [
+            {
+              title: "✅ Inactivity Notice Approved",
+              description: `**${username}**'s inactivity was recorded and approved by **${reviewerName}** (admin action).`,
+              color: 0x10b981,
+              fields: [
+                { name: "User", value: username, inline: true },
+                { name: "User ID", value: userId.toString(), inline: true },
+                { name: "Recorded By", value: reviewerName, inline: true },
+                { name: "Start Date", value: startDate, inline: true },
+                { name: "End Date", value: endDate, inline: true },
+                { name: "Reason", value: reason.trim() || "No reason provided", inline: false },
+              ],
+              thumbnail: { url: thumbnail || undefined },
+              footer: {
+                text: workspace?.groupName || "Workspace",
+                icon_url: workspace?.groupLogo || undefined,
+              },
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        });
+      } catch (webhookError) {
+        console.error("Failed to send webhook:", webhookError);
+      }
+    }
 
     return res.status(201).json({
       success: true,

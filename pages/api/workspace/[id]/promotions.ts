@@ -159,6 +159,7 @@ async function handleCreatePromotion(
       error: "Failed to fetch Roblox user data" 
     });
   }
+
   const newId = uuidv4();
   const createdRows: any[] = await prisma.$queryRawUnsafe(
     `INSERT INTO "Promotion" (

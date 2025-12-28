@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import type { NextPage } from "next";
 import Head from "next/head";
-import Image from "next/image";
 import Sidebar from "@/components/sidebar";
+import WorkspaceTopbar from "@/components/workspace-topbar";
+import WorkspaceTour, { type TourStep } from "@/components/WorkspaceTour";
 import type { LayoutProps } from "@/layoutTypes";
 import axios from "axios";
 import { Transition } from "@headlessui/react";
@@ -13,8 +14,9 @@ import hexRgb from "hex-rgb";
 import * as colors from "tailwindcss/colors";
 import WorkspaceBirthdayPrompt from '@/components/bdayprompt';
 import { useEffect, useState } from "react";
-import { IconChevronLeft, IconChevronRight, IconMenu2 } from "@tabler/icons-react";
+import { IconChevronLeft, IconChevronRight, IconMenu2, IconAlertTriangle, IconX } from "@tabler/icons-react";
 import clsx from 'clsx';
+import packageJson from '../package.json';
 
 
 const workspace: LayoutProps = ({ children }) => {
@@ -24,6 +26,34 @@ const workspace: LayoutProps = ({ children }) => {
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	const [isMobile, setIsMobile] = useState(false);
 	const [open, setOpen] = useState(true);
+	const [suspensionError, setSuspensionError] = useState<string | null>(null);
+	const [tourOpen, setTourOpen] = useState(false);
+		const [tourStep, setTourStep] = useState(0);
+		const [tourSeen, setTourSeen] = useState(false);
+
+		const tourSteps: TourStep[] = [
+			{
+				id: "workspace-brand",
+				title: "Workspace identity",
+				description: "Jump between workspaces and see the active brand at a glance.",
+			},
+			{
+				id: "workspace-search",
+				title: "Universal search",
+				description: "Use the quick search to open pages and actions instantly.",
+				hint: "Tip: hit Ctrl + K anywhere to open search",
+			},
+			{
+				id: "sidebar-nav",
+				title: "Navigation hubs",
+				description: "The sidebar holds activity, policies, sessions, and settings for this workspace.",
+			},
+			{
+				id: "workspace-content",
+				title: "Home surface",
+				description: "This space is your dashboard - customize widgets and announcements from Settings.",
+			},
+		];
 
 	const useTheme = (groupTheme: string) => {
 		const themes: Record<string, string> = {
@@ -61,7 +91,7 @@ const workspace: LayoutProps = ({ children }) => {
 			"bg-indigo-700": "#4338ca",
 			"bg-violet-700": "#6d28d9",
 			// Legacy colors for backwards compatibility
-			"bg-orbit": "#FF0099",
+			"bg-orbit": "#7700ff",
 			"bg-blue-500": colors.blue[500],
 			"bg-red-500": colors.red[500],
 			"bg-green-500": colors.green[500],
@@ -86,11 +116,22 @@ const workspace: LayoutProps = ({ children }) => {
 			try {
 				const res = await axios.get("/api/workspace/" + router.query.id);
 				setWorkspace(res.data.workspace);
+				setSuspensionError(null);
 			} catch (e: any) {
-				router.push("/");
+				// Check if workspace is suspended or deleted
+				const errorMessage = e.response?.data?.error;
+				if (errorMessage?.includes('suspended') || errorMessage?.includes('deleted')) {
+					// Show suspension/deletion modal
+					setSuspensionError(errorMessage);
+				} else {
+					router.push("/");
+				}
 			}
 		}
-		if (router.query.id) getworkspace();
+		// Only fetch workspace if we have a valid workspace ID
+		if (router.query.id && router.query.id !== '0') {
+			getworkspace();
+		}
 	}, [router.query.id, setWorkspace, router]);
 
 	useEffect(() => {
@@ -111,12 +152,32 @@ const workspace: LayoutProps = ({ children }) => {
 		return () => window.removeEventListener("resize", checkMobile);
 	}, []);
 
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
+		setTourSeen(localStorage.getItem("varyn-tour-v1") === "done");
+	}, []);
+
+	const startTour = () => {
+		setTourStep(0);
+		setTourOpen(true);
+	};
+
+	const completeTour = () => {
+		setTourSeen(true);
+		setTourOpen(false);
+		if (typeof window !== 'undefined') localStorage.setItem("varyn-tour-v1", "done");
+	};
+
 	return (
-		<div className="h-screen bg-zinc-50 dark:bg-zinc-900">
+		<div className="h-screen w-screen bg-zinc-50 dark:bg-zinc-900 flex flex-col">
 			<Head>
-				<title>{workspace.groupName ? `Orbit - ${workspace.groupName}` : "Loading..."}</title>
-				<link rel="icon" href={`${workspace.groupThumbnail}/isCircular`} />
+				<title>{workspace.groupName ? `Varyn - ${workspace.groupName}` : "Loading..."}</title>
+				<link rel="icon" href={`/favicon-32x32.png`} />
 			</Head>
+
+			<div className="z-50 h-16 flex-shrink-0">
+				<WorkspaceTopbar onStartTour={startTour} showTourPill={!tourSeen} tourSeen={tourSeen} />
+			</div>
 
 			<Transition
 				show={open}
@@ -135,22 +196,66 @@ const workspace: LayoutProps = ({ children }) => {
 				/>
 			</Transition>
 
-			<div className="flex h-screen">
-				<Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-				
-				<main
-		  			className={clsx(
-		    		"flex-1 transition-all duration-300 overflow-y-auto",
-		    		!isMobile && (isCollapsed ? "ml-16" : "ml-60")
-		  			)}>
-		  			<div className="relative z-10">
-		    		{children}
-		  			</div>
-		  			{router.query.id && (
-		  				<WorkspaceBirthdayPrompt workspaceId={router.query.id as string} />
-		  			)}
-				</main>
+			<div className="flex flex-1 overflow-hidden">
+				<div className={clsx(
+					"transition-all duration-300 flex-shrink-0 h-full",
+				"w-0 lg:w-64",
+				isCollapsed && "lg:w-[4.5rem]"
+				)}>
+					<Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+				</div>
+
+				<main className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-900">
+				<div className="relative z-10" data-tour-id="workspace-content">
+					{children}
+				</div>
+				{router.query.id && (
+					<WorkspaceBirthdayPrompt workspaceId={router.query.id as string} />
+				)}
+			</main>
+		</div>
+		
+		{/* Suspension/Deletion Modal */}
+		{suspensionError && (
+			<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+				<div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+					<div className="flex items-start gap-4">
+						<div className="flex-shrink-0">
+							<IconAlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+						</div>
+						<div className="flex-1">
+							<h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+								{suspensionError.includes('suspended') ? 'Workspace Suspended' : 'Workspace Deleted'}
+							</h3>
+							<p className="text-slate-600 dark:text-slate-300 mb-6">
+								{suspensionError}
+							</p>
+							<button
+								onClick={() => router.push('/')}
+								className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+							>
+								Return to Workspaces
+							</button>
+						</div>
+						<button
+							onClick={() => router.push('/')}
+							className="flex-shrink-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+						>
+							<IconX className="w-5 h-5" />
+						</button>
+					</div>
+				</div>
 			</div>
+		)}
+		
+		<WorkspaceTour
+				open={tourOpen}
+				steps={tourSteps}
+				stepIndex={tourStep}
+				onStepChange={setTourStep}
+				onClose={() => setTourOpen(false)}
+				onComplete={completeTour}
+			/>
 		</div>
 	);
 };

@@ -34,7 +34,13 @@ const PolicyNotificationBanner: FC<PolicyNotificationBannerProps> = ({ workspace
 			});
 
 			setUrgentPolicies(urgent);
-		} catch (error) {
+		} catch (error: any) {
+			const status = error?.response?.status;
+			if (status === 404 || status === 403 || status === 401) {
+				// Policies not enabled or user lacks access: treat as no urgent policies
+				setUrgentPolicies([]);
+				return;
+			}
 			console.error('Failed to fetch urgent policies:', error);
 		} finally {
 			setIsLoading(false);

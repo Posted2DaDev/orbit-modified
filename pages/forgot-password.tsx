@@ -215,6 +215,17 @@ const ForgotPassword: NextPage = () => {
 						</div>
 
 						<div className="space-y-4">
+
+							
+							<div>
+								<h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-1">
+									Varyn modifications:
+								</h3>
+								<p className="text-sm text-zinc-500 dark:text-zinc-400">
+									Copyright © 2025 postedDevelopment. All rights reserved.
+								</p>
+							</div>
+
 							<div>
 								<h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-1">
 									Orbit features, enhancements, and modifications:

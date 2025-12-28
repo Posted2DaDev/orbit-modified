@@ -216,8 +216,8 @@ const Login: NextPage = () => {
 
           {mode === "login" && (
             <>
-              <p className="font-bold text-3xl text-zinc-700 dark:text-white mb-2">👋 Welcome to Orbit</p>
-              <p className="text-md text-zinc-600 dark:text-zinc-300 mb-6">Login to your Orbit account to continue</p>
+              <p className="font-bold text-3xl text-zinc-700 dark:text-white mb-2">👋 Welcome to Varyn</p>
+              <p className="text-md text-zinc-600 dark:text-zinc-300 mb-6">Login to your Varyn account to continue</p>
 
               <FormProvider {...loginMethods}>
                 <form onSubmit={submitLogin(onSubmitLogin)} className="space-y-5 mb-6" noValidate>
@@ -293,7 +293,7 @@ const Login: NextPage = () => {
               {signupStep === 0 && (
                 <>
                   <p className="font-bold text-3xl text-zinc-700 dark:text-white mb-2">🔨 Create an account</p>
-                  <p className="text-md text-zinc-600 dark:text-zinc-300 mb-6">Create a new account for Orbit</p>
+                  <p className="text-md text-zinc-600 dark:text-zinc-300 mb-6">Create a new account for Varyn</p>
 
                   <FormProvider {...signupMethods}>
                     <form onSubmit={e => { e.preventDefault(); setSignupStep(1); }} className="space-y-5 mb-6" noValidate>
@@ -491,6 +491,17 @@ const Login: NextPage = () => {
             </div>
 
             <div className="space-y-4">
+
+		  
+              <div>
+                <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-1">
+                  Varyn modifications:
+                </h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Copyright © 2025 postedDevelopment. All rights reserved.
+                </p>
+              </div>
+
               <div>
                 <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-1">
                   Orbit features, enhancements, and modifications:

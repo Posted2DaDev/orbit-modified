@@ -9,9 +9,9 @@ export default withPermissionCheck(async (req: NextApiRequest, res: NextApiRespo
 	try {
 		const workspaceUsers = await prisma.user.findMany({
 			where: {
-				roles: {
+				workspaceMemberships: {
 					some: {
-						workspaceGroupId: parseInt(id as string)
+						workspaceGroupId: Number.parseInt(id as string)
 					}
 				}
 			},

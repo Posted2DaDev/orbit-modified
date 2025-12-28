@@ -2,26 +2,25 @@ import axios from "axios";
 import React, { useEffect, useState, Fragment } from "react";
 import type toast from "react-hot-toast";
 import { useRecoilState } from "recoil";
-import SwitchComponenet from "@/components/switch";
 import { workspacestate } from "@/state";
 import { Dialog, Listbox, Transition } from "@headlessui/react";
 import {
   IconCheck,
   IconChevronDown,
   IconAlertTriangle,
-  IconRefresh,
+  IconToggleLeft,
+  IconToggleRight,
   IconCalendarTime,
 } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 import moment from "moment";
-
-import { FC } from "@/types/settingsComponent";
+import clsx from "clsx";
 
 type props = {
   triggerToast: typeof toast;
 };
 
-const Activity: FC<props> = (props) => {
+const Activity = (props: props) => {
   const triggerToast = props.triggerToast;
   const [workspace, setWorkspace] = useRecoilState(workspacestate);
   const [roles, setRoles] = React.useState([]);
@@ -31,7 +30,28 @@ const Activity: FC<props> = (props) => {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [leaderboardEnabled, setLeaderboardEnabled] = useState(false);
+  const [weekStartsOn, setWeekStartsOn] = useState<"sunday" | "monday">("sunday");
+  const [trackedRoles, setTrackedRoles] = useState<Record<string, boolean>>({});
   const router = useRouter();
+
+  // Load activity tracking settings
+  useEffect(() => {
+    const loadTrackingSettings = async () => {
+      try {
+        const response = await axios.get(
+          `/api/workspace/${router.query.id}/settings/activity/tracking`
+        );
+        setWeekStartsOn(response.data.weekStartsOn || "sunday");
+        setTrackedRoles(response.data.trackedRoles || {});
+      } catch (error) {
+        console.error("Failed to load tracking settings:", error);
+      }
+    };
+
+    if (router.query.id) {
+      loadTrackingSettings();
+    }
+  }, [router.query.id]);
 
   useEffect(() => {
     (async () => {
@@ -102,7 +122,8 @@ const Activity: FC<props> = (props) => {
       if (selectedLRole && id > selectedLRole) {
         const availableRoles = (roles as any[]).filter((role: any) => role.rank >= id);
         if (availableRoles.length > 0) {
-          const lowestAvailableRole = availableRoles.sort((a: any, b: any) => a.rank - b.rank)[0];
+          const sorted = [...availableRoles].sort((a: any, b: any) => a.rank - b.rank);
+          const lowestAvailableRole = sorted[0];
           await updateLRole(lowestAvailableRole.rank);
         }
       }
@@ -123,6 +144,52 @@ const Activity: FC<props> = (props) => {
     } catch (error: any) {
       triggerToast.error(
         error?.response?.data?.error || "Failed to update leaderboard rank."
+      );
+    }
+  };
+
+  const updateWeekStartsOn = async (day: "sunday" | "monday") => {
+    setWeekStartsOn(day);
+    try {
+      await axios.patch(
+        `/api/workspace/${router.query.id}/settings/activity/tracking`,
+        {
+          weekStartsOn: day,
+          trackedRoles,
+        }
+      );
+      triggerToast.success("Week start day updated!");
+    } catch (error: any) {
+      triggerToast.error(
+        error?.response?.data?.message || "Failed to update week start day!"
+      );
+    }
+  };
+
+  const toggleTrackedRole = async (roleId: string, enabled: boolean) => {
+    const updatedRoles = {
+      ...trackedRoles,
+      [roleId]: enabled,
+    };
+    setTrackedRoles(updatedRoles);
+    try {
+      await axios.patch(
+        `/api/workspace/${router.query.id}/settings/activity/tracking`,
+        {
+          weekStartsOn,
+          trackedRoles: updatedRoles,
+        }
+      );
+      const roleName = (roles as any[]).find((r: any) => r.id === roleId)?.name || "Role";
+      triggerToast.success(
+        enabled ? `${roleName} tracking enabled!` : `${roleName} tracking disabled!`
+      );
+    } catch (error: any) {
+      const previousRoles = { ...trackedRoles };
+      delete previousRoles[roleId];
+      setTrackedRoles(previousRoles);
+      triggerToast.error(
+        error?.response?.data?.message || "Failed to update role tracking!"
       );
     }
   };
@@ -156,10 +223,90 @@ const Activity: FC<props> = (props) => {
         Sessions are a powerful way to keep track of your groups sessions &
         shifts
       </p>
+
+      {/* Tracking Settings Section */}
+      <div className="mb-6 space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+        <div className="flex items-center gap-2">
+          <IconCalendarTime className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+          <h3 className="font-semibold text-slate-900 dark:text-white">
+            Tracking Settings
+          </h3>
+        </div>
+
+        {/* Week Starts On */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            Week Starts On
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => updateWeekStartsOn("sunday")}
+              className={clsx(
+                "flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                weekStartsOn === "sunday"
+                  ? "bg-blue-500 text-white"
+                  : "bg-white text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+              )}
+            >
+              Sunday
+            </button>
+            <button
+              onClick={() => updateWeekStartsOn("monday")}
+              className={clsx(
+                "flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                weekStartsOn === "monday"
+                  ? "bg-blue-500 text-white"
+                  : "bg-white text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+              )}
+            >
+              Monday
+            </button>
+          </div>
+        </div>
+
+        {/* Tracked Roles */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            Tracked Roles
+          </div>
+          <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-slate-300 bg-white p-3 dark:border-slate-600 dark:bg-slate-900">
+            {roles.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                No roles available
+              </p>
+            ) : (
+              roles.map((role: any) => (
+                <div
+                  key={role.id}
+                  className="flex items-center justify-between rounded-lg py-1 px-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    {role.name}
+                  </span>
+                  <button
+                    onClick={() =>
+                      toggleTrackedRole(role.id, !trackedRoles[role.id])
+                    }
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                    title={trackedRoles[role.id] ? "Disable tracking" : "Enable tracking"}
+                  >
+                    {trackedRoles[role.id] ? (
+                      <IconToggleRight className="h-6 w-6 text-blue-500" />
+                    ) : (
+                      <IconToggleLeft className="h-6 w-6" />
+                    )}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="mb-6">
-        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+        <div className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
           Activity Role
-        </label>
+        </div>
         <Listbox
           value={selectedRole}
           onChange={(value: number) => updateRole(value)}
@@ -181,7 +328,7 @@ const Activity: FC<props> = (props) => {
             <div className="">
               {roles
                 .filter((role: any) => role.rank > 0)
-                .map((role: any, index) => (
+                .map((role: any) => (
                 <Listbox.Option
                   className={({ active }) =>
                     `${
@@ -190,7 +337,7 @@ const Activity: FC<props> = (props) => {
                         : "text-zinc-900 dark:text-white"
                     } relative cursor-pointer select-none py-2 pl-3 pr-9`
                   }
-                  key={index}
+                  key={role.rank}
                   value={role.rank}
                 >
                   {({ selected, active }) => (
@@ -223,9 +370,9 @@ const Activity: FC<props> = (props) => {
 
       {leaderboardEnabled && (
         <div className="mb-6">
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+          <div className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
             Leaderboard Rank
-          </label>
+          </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
             Set the minimum rank that will appear on the leaderboard
           </p>
@@ -289,7 +436,7 @@ const Activity: FC<props> = (props) => {
                   .filter(
                     (role: any) => !selectedRole || role.rank >= selectedRole
                   )
-                  .map((role: any, index) => (
+                  .map((role: any) => (
                     <Listbox.Option
                       className={({ active }) =>
                         `${
@@ -298,7 +445,7 @@ const Activity: FC<props> = (props) => {
                             : "text-zinc-900 dark:text-white"
                         } relative cursor-pointer select-none py-2 pl-3 pr-9`
                       }
-                      key={index}
+                      key={role.rank}
                       value={role.rank}
                     >
                       {({ selected, active }) => (

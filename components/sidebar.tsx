@@ -3,7 +3,7 @@ import type { NextPage } from "next"
 import { loginState, workspacestate } from "@/state"
 import { themeState } from "@/state/theme"
 import { useRecoilState } from "recoil"
-import { Menu, Listbox, Dialog } from "@headlessui/react"
+import { Menu, Dialog } from "@headlessui/react"
 import { useRouter } from "next/router"
 import {
   IconHome,
@@ -36,6 +36,7 @@ import {
   IconTrophy,
   IconTrophyFilled,
   IconArrowsUpDown,
+  IconBan,
 } from "@tabler/icons-react"
 import axios from "axios"
 import clsx from "clsx"
@@ -64,7 +65,6 @@ const ChangelogContent: React.FC<{ workspaceId: number }> = ({ workspaceId }) =>
       .catch(() => setLoading(false));
   }, [workspaceId]);
 
-  if (loading) return <p className="text-sm text-zinc-500">Loading...</p>;
   if (!entries.length) return <p className="text-sm text-zinc-500">No entries found.</p>;
 
   return (
@@ -163,11 +163,11 @@ const Sidebar: NextPage<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     ...(policiesEnabled ? [{ name: "Policies", href: "/workspace/[id]/policies", icon: IconShield, filledIcon: IconShield, accessible: workspace.yourPermission.includes("manage_policies") || workspace.yourPermission.includes("admin") }] : []),
 	...(liveServersEnabled ? [{ name: "Live Servers", href: "/workspace/[id]/live", icon: IconServer, filledIcon: IconServer, accessible: workspace.yourPermission.includes("view_servers") || workspace.yourPermission.includes("admin") }] : []),
     ...(promotionsEnabled ? [{ name: "Promotions", href: "/workspace/[id]/promotions", icon: IconArrowsUpDown, filledIcon: IconArrowsUpDown, accessible: workspace.yourPermission.includes("manage_promotions") || workspace.yourPermission.includes("view_promotions") || workspace.yourPermission.includes("admin") }] : []),
-    { name: "Settings", href: "/workspace/[id]/settings", icon: IconSettings, filledIcon: IconSettingsFilled, accessible: workspace.yourPermission.includes("admin") },
-  ];
+    { name: "Settings", href: "/workspace/[id]/settings", icon: IconSettings, filledIcon: IconSettingsFilled, accessible: workspace.yourPermission.includes("admin") },    ...(login.isOwner ? [{ name: "Workspace Admin", href: "/admin/workspaces", icon: IconBan, filledIcon: IconBan, accessible: true }] : []),  ];
 
   const gotopage = (page: string) => {
-    router.push(page.replace("[id]", workspace.groupId.toString()))
+    const finalPath = page.includes("[id]") ? page.replace("[id]", workspace.groupId.toString()) : page
+    router.push(finalPath)
     setIsMobileMenuOpen(false)
   }
 
@@ -356,113 +356,23 @@ const Sidebar: NextPage<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-[999999] p-2 rounded-lg bg-white dark:bg-zinc-800 shadow"
+        className="lg:hidden fixed top-20 left-4 z-[999999] p-2 rounded-lg bg-white dark:bg-zinc-800 shadow"
       >
         <IconMenu2 className="w-6 h-6 text-zinc-700 dark:text-white" />
       </button>
 
-      {/* Mobile overlay */}
-      {/* Sidebar */}
-      <div
-  		className={clsx(
-  			"fixed lg:static top-0 left-0 h-screen w-full lg:w-auto z-[99999] transition-transform duration-300 flex flex-col",
-    		isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-  		)}
+      <aside
+        data-tour-id="sidebar-nav"
+        className={clsx(
+          "h-full w-64 flex flex-col shadow-xl transition-all duration-300",
+          "bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-700",
+          "fixed lg:relative z-30",
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          isCollapsed && "lg:w-[4.5rem]"
+        )}
       >
-
-        <aside
-          className={clsx(
-            "h-screen flex flex-col pointer-events-auto shadow-xl transition-all duration-300",
-            "bg-white dark:bg-zinc-800 border-r border-gray-200 dark:border-zinc-700",
-            isCollapsed ? "w-[4.5rem]" : "w-64",
-          )}
-        >
-          <div className="h-full flex flex-col p-3 overflow-y-auto">
-            <div className="relative">
-              <Listbox
-                value={workspace.groupId}
-                onChange={(id) => {
-                  const selected = login.workspaces?.find((ws) => ws.groupId === id)
-                  if (selected) {
-                    setWorkspace({
-                      ...workspace,
-                      groupId: selected.groupId,
-                      groupName: selected.groupName,
-                      groupThumbnail: selected.groupThumbnail,
-                    })
-                    router.push(`/workspace/${selected.groupId}`)
-                  }
-                }}
-              >
-                <Listbox.Button
-                  className={clsx(
-                    "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-300",
-                    "hover:bg-[color:rgb(var(--group-theme)/0.1)] hover:text-[color:rgb(var(--group-theme))]",
-                    "dark:hover:bg-zinc-700",
-                    isCollapsed && "justify-center"
-                  )}
-                >
-                  <img
-                    src={workspace.groupThumbnail || "/favicon-32x32.png"}
-                    alt=""
-                    className={clsx(
-                      "w-10 h-10 rounded-lg object-cover transition-all duration-300",
-                      isCollapsed && "scale-90 opacity-80"
-                    )}
-                  />
-                  {!isCollapsed && (
-                    <div className="flex-1 min-w-0 text-left transition-all duration-300">
-                      <p className="text-sm font-medium truncate dark:text-white max-w-full">
-                        {workspace.groupName}
-                      </p>
-                      <p className="text-xs text-zinc-500 dark:text-white truncate max-w-full">
-                        Switch workspace
-                      </p>
-                    </div>
-                  )}
-                  {!isCollapsed && (
-                    <IconChevronDown className="w-4 h-4 text-zinc-400 dark:text-white transition-all duration-300" />
-                  )}
-                </Listbox.Button>
-              
-                <Listbox.Options
-                  className={clsx(
-                    "absolute top-0 z-50 w-64 mt-14 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border dark:border-zinc-700 max-h-64 overflow-auto"
-                  )}
-                >
-                  {login?.workspaces && login.workspaces.length > 1 ? (
-                    login.workspaces
-                      .filter(ws => ws.groupId !== workspace.groupId)
-                      .map((ws) => (
-                        <Listbox.Option
-                          key={ws.groupId}
-                          value={ws.groupId}
-                          className={({ active }) =>
-                            clsx(
-                              "flex items-center gap-3 px-3 py-2 cursor-pointer rounded-md transition duration-200",
-                              active && "bg-[color:rgb(var(--group-theme)/0.1)] text-[color:rgb(var(--group-theme))]"
-                            )
-                          }
-                        >
-                          <img
-                            src={ws.groupThumbnail || "/placeholder.svg"}
-                            alt=""
-                            className="w-8 h-8 rounded-lg object-cover transition duration-200"
-                          />
-                          <span className="flex-1 truncate text-sm dark:text-white">{ws.groupName}</span>
-                          {workspace.groupId === ws.groupId && <IconCheck className="w-5 h-5 text-primary" />}
-                        </Listbox.Option>
-                      ))
-                  ) : (
-                    <div className="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">
-                      No other workspaces
-                    </div>
-                  )}
-                </Listbox.Options>
-              </Listbox>
-            </div>
-
-            <nav className="flex-1 space-y-1 mt-4">
+        <div className="flex-1 flex flex-col p-3 overflow-y-auto">
+          <nav className="flex-1 space-y-1 mt-4">
               {pages.map((page) =>
                 (page.accessible === undefined || page.accessible) && (
                   <button
@@ -470,15 +380,19 @@ const Sidebar: NextPage<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                     onClick={() => gotopage(page.href)}
                     className={clsx(
                       "w-full gap-3 px-2 py-2 rounded-lg text-sm font-medium transition-all duration-300",
-                      router.asPath === page.href.replace("[id]", workspace.groupId.toString())
+                      (() => {
+                        const targetPath = page.href.includes("[id]") ? page.href.replace("[id]", workspace.groupId.toString()) : page.href;
+                        return router.asPath === targetPath;
+                      })()
                         ? "bg-[color:rgb(var(--group-theme)/0.1)] text-[color:rgb(var(--group-theme))] font-semibold"
                         : "text-zinc-700 dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700",
                       isCollapsed ? "grid place-content-center" : "flex gap-2 items-center",
                     )}
                   >
                     {(() => {
+                      const targetPath = page.href.includes("[id]") ? page.href.replace("[id]", workspace.groupId.toString()) : page.href;
                       const IconComponent: React.ElementType =
-                        router.asPath === page.href.replace("[id]", workspace.groupId.toString())
+                        router.asPath === targetPath
                           ? page.filledIcon || page.icon
                           : page.icon;
                       return <IconComponent className="w-5 h-5" />;
@@ -495,97 +409,26 @@ const Sidebar: NextPage<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
                     )}
                   </button>
                 )
-              )}
-            </nav>
-
-            <Menu as="div" className="relative">
-              <Menu.Button
-                className={clsx(
-                  "w-full flex items-center gap-3 p-2 rounded-lg transition-all duration-300",
-                  "hover:bg-[color:rgb(var(--group-theme)/0.1)] hover:text-[color:rgb(var(--group-theme))]",
-                  "dark:hover:bg-zinc-700",
-                  isCollapsed ? "justify-center" : "justify-start"
-                )}
-              >
-                <img
-                  src={login?.thumbnail || "/placeholder.svg"}
-                  alt=""
-                  className={clsx(
-                    "w-10 h-10 rounded-lg object-cover transition-all duration-300",
-                    isCollapsed && "scale-90 opacity-80"
-                  )}
-                />
-                {!isCollapsed && (
-                  <div className="flex-1 min-w-0 text-left transition-all duration-300">
-                    <p className="text-sm font-medium truncate dark:text-white">{login?.displayname}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                      Manage account
-                    </p>
-                  </div>
-                )}
-                {!isCollapsed && (
-                  <IconChevronDown className="w-4 h-4 text-zinc-400 dark:text-white transition-all duration-300" />
-                )}
-              </Menu.Button>
-          
-              <Menu.Items className="absolute bottom-14 left-0 w-full bg-white dark:bg-zinc-700 rounded-lg shadow-lg z-50 py-2">
-                  <Menu.Item>
-                  {({ active }) => (
-                    <button
-                      onClick={toggleTheme}
-                      className={clsx(
-                        "w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-white transition-all duration-200",
-                        active && "bg-zinc-100 dark:bg-zinc-600"
-                      )}
-                    >
-                      {theme === "dark" ? (
-                        <div className="flex items-center gap-2">
-                          <IconSun className="w-4 h-4" /> Light Mode
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <IconMoon className="w-4 h-4" /> Dark Mode
-                        </div>
-                      )}
-                    </button>
-                  )}
-                </Menu.Item>
-                
-                <Menu.Item>
-                  {({ active }) => (
-                    <button
-                      onClick={logout}
-                      className={clsx(
-                        "w-full text-left px-4 py-2 text-sm text-red-500 transition-all duration-200",
-                        active && "bg-red-50 dark:bg-red-900/40"
-                      )}
-                    >
-                      Logout
-                    </button>
-                  )}
-                </Menu.Item>
-              </Menu.Items>
-            </Menu>
-          
-            {!isCollapsed && (
-              <button
-                onClick={() => {
-                  setShowOrbitInfo(true);
-                }}
-                className="mt-4 w-full text-left text-xs text-zinc-500 hover:text-primary transition-all duration-300"
-              >
-                © Copyright Notices
-              </button>
             )}
+          </nav>
+        
+          {!isCollapsed && (
+            <button
+              onClick={() => {
+                setShowOrbitInfo(true);
+              }}
+              className="mt-4 w-full text-left text-xs text-zinc-500 hover:text-primary transition-all duration-300"
+            >
+              © Copyright Notices
+            </button>
+          )}
 
-            {!isCollapsed && (
-              <div className="mt-2 text-xs text-zinc-500">
-                Orbit v{packageJson.version} - <button onClick={() => setShowChangelog(true)} className="mt-2 text-left text-xs text-zinc-500 hover:text-primary">Changelog</button>
-              </div>
-            )}
-			
-          </div>
-
+          {!isCollapsed && (
+            <div className="mt-2 text-xs text-zinc-500">
+              Varyn v{packageJson.version} - <button onClick={() => setShowChangelog(true)} className="mt-2 text-left text-xs text-zinc-500 hover:text-primary">Changelog</button>
+            </div>
+          )}
+        </div>
           <Dialog
             open={showCopyright}
             onClose={() => setShowCopyright(false)}
@@ -613,10 +456,10 @@ const Sidebar: NextPage<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
 
 					<div>
                     <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-1">
-                      prplManagement additions and features:
+                      Varyn additions and features:
                     </h3>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      Copyright © 2025 prplSolutions. All rights reserved.
+                      Copyright © 2025 postedDevelopment. All rights reserved.
                     </p>
                   </div>
 
@@ -669,10 +512,10 @@ const Sidebar: NextPage<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
 
 					<div>
                     <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-1">
-                      prplManagement additions and features:
+                      Varyn additions and features:
                     </h3>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      Copyright © 2025 prplSolutions. All rights reserved.
+                      Copyright © 2025 postedDevelopment. All rights reserved.
                     </p>
                   </div>
                 <div className="border-t border-zinc-300 dark:border-zinc-700 my-4" />
@@ -735,7 +578,6 @@ const Sidebar: NextPage<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
             </div>
           </Dialog>
         </aside>
-      </div>
     </>
   )
 }

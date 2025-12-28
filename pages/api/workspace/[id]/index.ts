@@ -41,72 +41,147 @@ export async function handler(
 	if (!req.session.userid) return res.status(401).json({ success: false, error: 'Not authenticated' });
 	if (!req.query.id) return res.status(400).json({ success: false, error: 'Missing required fields' });
 
-	const workspace = await prisma.workspace.findUnique({
-		where: {
-			groupId: parseInt(req.query.id as string)
-		},
-		include: {
-			roles: {
-				orderBy: {
-					isOwnerRole: 'desc'
+	try {
+		const workspace = await prisma.workspace.findUnique({
+			where: {
+				groupId: parseInt(req.query.id as string)
+			}
+		});
+		if (!workspace) return res.status(404).json({ success: false, error: 'Not found' });
+
+		// Check if workspace is suspended or deleted
+		if (workspace.isSuspended) {
+			return res.status(403).json({ success: false, error: 'This workspace has been suspended' });
+		}
+
+		if (workspace.isDeleted) {
+			return res.status(403).json({ success: false, error: 'This workspace has been deleted' });
+		}
+
+		const workspaceWithRoles = await prisma.workspace.findUnique({
+			where: {
+				groupId: parseInt(req.query.id as string)
+			},
+			include: {
+				roles: {
+					orderBy: {
+						isOwnerRole: 'desc'
+					}
 				}
 			}
-		}
-	});
-	if (!workspace) return res.status(404).json({ success: false, error: 'Not found' });
+		});
 
-	const user = await prisma.user.findFirst({
-		where: {
-			userid: BigInt(req.session.userid)
-		},
-		include: {
-			roles: {
-				where: {
-					workspaceGroupId: workspace.groupId
-				},
-				orderBy: {
-					isOwnerRole: 'desc'
+		const user = await prisma.user.findFirst({
+			where: {
+				userid: BigInt(req.session.userid)
+			},
+			include: {
+				roles: {
+					where: {
+						workspaceGroupId: workspaceWithRoles.groupId
+					},
+					orderBy: {
+						isOwnerRole: 'desc'
+					}
 				}
 			}
+		});
+		if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+		if (!user.roles || user.roles.length === 0) {
+			return res.status(403).json({ success: false, error: 'No workspace role assigned' });
 		}
-	});
-	if (!user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
-	const groupinfo = await noblox.getGroup(workspace.groupId);
-	const themeconfig = await getConfig('theme', workspace.groupId);
+		const primaryRole = user.roles[0];
 
-	const permissions = {
-		"View wall": "view_wall",
-		"View members": "view_members",
-		"View Activity History": "view_entire_groups_activity",
-		"Post on wall": "post_on_wall",
-		"Represent alliance": "represent_alliance",
-		'Assign users to Sessions': 'sessions_assign',
-		'Assign Self to Sessions': 'sessions_claim',
-		'Host Sessions': 'sessions_host',
-		"Manage sessions": "manage_sessions",
-		"Manage activity": "manage_activity",
-		"Manage quotas": "manage_quotas",
-		"Manage members": "manage_members",
-		"Manage docs": "manage_docs",
-		"Manage alliances": "manage_alliances",
-		"Admin (Manage workspace)": "admin",
-	};	res.status(200).json({ success: true, permissions: user.roles[0].permissions, workspace: {
-		groupId: workspace.groupId,
-		groupThumbnail: await noblox.getLogo(workspace.groupId),
-		groupName: groupinfo.name,
-		yourPermission: user.roles[0].isOwnerRole ? Object.values(permissions) : user.roles[0].permissions,
-		groupTheme: themeconfig,
-		roles: workspace.roles,
-		yourRole: user.roles[0].id,
-		settings: {
-			guidesEnabled: (await getConfig('guides', workspace.groupId))?.enabled || false,
-			leaderboardEnabled: (await getConfig('leaderboard', workspace.groupId))?.enabled || false,
-			sessionsEnabled: (await getConfig('sessions', workspace.groupId))?.enabled || false,
-			alliesEnabled: (await getConfig('allies', workspace.groupId))?.enabled || false,
-			noticesEnabled: (await getConfig('notices', workspace.groupId))?.enabled || false,
-			policiesEnabled: (await getConfig('policies', workspace.groupId))?.enabled || false,
-			widgets: (await getConfig('home', workspace.groupId))?.widgets || []
+		let groupinfo;
+		let groupLogo;
+		try {
+			groupinfo = await noblox.getGroup(workspaceWithRoles.groupId);
+			groupLogo = await noblox.getLogo(workspaceWithRoles.groupId);
+		} catch (e: any) {
+			const msg = e?.message || String(e);
+			if (msg.includes('429') || msg.toLowerCase().includes('too many requests')) {
+				return res.status(429).json({ success: false, error: 'Rate limited by Roblox. Please retry shortly.' });
+			}
+			throw e;
 		}
-	} })
+
+		const [themeconfigRaw, legacyTheme, guides, leaderboard, sessions, allies, notices, policies, homeRaw] = await Promise.all([
+			getConfig('customization', workspaceWithRoles.groupId),
+			getConfig('theme', workspaceWithRoles.groupId),
+			getConfig('guides', workspaceWithRoles.groupId),
+			getConfig('leaderboard', workspaceWithRoles.groupId),
+			getConfig('sessions', workspaceWithRoles.groupId),
+			getConfig('allies', workspaceWithRoles.groupId),
+			getConfig('notices', workspaceWithRoles.groupId),
+			getConfig('policies', workspaceWithRoles.groupId),
+			getConfig('home', workspaceWithRoles.groupId),
+		]);
+
+		// Use customization key, fallback to legacy theme key
+		let themeconfig = themeconfigRaw || legacyTheme;
+		if (themeconfig && typeof themeconfig === 'string') {
+			try {
+				themeconfig = JSON.parse(themeconfig);
+			} catch {
+				themeconfig = themeconfig;
+			}
+		}
+
+		let home = homeRaw as any;
+		if (homeRaw && typeof homeRaw === 'string') {
+			try {
+				home = JSON.parse(homeRaw);
+			} catch {
+				home = null;
+			}
+		}
+
+		const permissions = {
+			"View wall": "view_wall",
+			"View members": "view_members",
+			"View Activity History": "view_entire_groups_activity",
+			"Post on wall": "post_on_wall",
+			"Represent alliance": "represent_alliance",
+			'Assign users to Sessions': 'sessions_assign',
+			'Assign Self to Sessions': 'sessions_claim',
+			'Host Sessions': 'sessions_host',
+			"Manage sessions": "manage_sessions",
+			"Manage activity": "manage_activity",
+			"Manage quotas": "manage_quotas",
+			"Manage members": "manage_members",
+			"Manage docs": "manage_docs",
+			"Manage alliances": "manage_alliances",
+			"Admin (Manage workspace)": "admin",
+		};
+
+		const yourPermissions = primaryRole.isOwnerRole ? Object.values(permissions) : primaryRole.permissions;
+
+		return res.status(200).json({
+			success: true,
+			permissions: primaryRole.permissions,
+			workspace: {
+				groupId: workspaceWithRoles.groupId,
+				groupThumbnail: groupLogo,
+				groupName: groupinfo.name,
+				yourPermission: yourPermissions,
+				groupTheme: themeconfig,
+				roles: workspaceWithRoles.roles,
+				yourRole: primaryRole.id,
+				settings: {
+					guidesEnabled: guides?.enabled || false,
+					leaderboardEnabled: leaderboard?.enabled || false,
+					sessionsEnabled: sessions?.enabled || false,
+					alliesEnabled: allies?.enabled || false,
+					noticesEnabled: notices?.enabled || false,
+					policiesEnabled: policies?.enabled || false,
+					widgets: home?.widgets ?? [],
+					coverImage: home?.coverImage ?? null,
+				}
+			}
+		});
+	} catch (err) {
+		console.error('[workspace:get] error', err);
+		return res.status(500).json({ success: false, error: 'Internal server error' });
+	}
 }

@@ -10,4 +10,5 @@ import Policies from './policies'
 import AuditLogs from './logs'
 import LiveServers from './live';
 import Promotions from './promotions';
-export { home, Color, Guide, Alliances, Sessions, Activity, Leaderboard, AuditLogs, Policies, Notices, LiveServers, Promotions };
+import InactivitySettings from './inactivity';
+export { home, Color, Guide, Alliances, Sessions, Activity, Leaderboard, AuditLogs, Policies, Notices, LiveServers, Promotions, InactivitySettings };

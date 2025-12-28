@@ -111,48 +111,6 @@ const Color: FC<props> = (props) => {
         shown to users with the corresponding permissions.
       </p>
 
-      {/* Cover image control */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium">Home cover image</span>
-          {workspace.settings.coverImage && (
-            <button
-              className="text-xs text-red-500 hover:text-red-600"
-              onClick={() =>
-                setWorkspace({
-                  ...workspace,
-                  settings: {
-                    ...workspace.settings,
-                    coverImage: null,
-                  },
-                })
-              }
-            >
-              Remove
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-4">
-          <label className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-primary text-white cursor-pointer hover:bg-primary/90">
-            <span>Upload</span>
-            <input
-              type="file"
-              accept="image/png, image/jpeg"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleCoverUpload(file);
-              }}
-            />
-          </label>
-          {workspace.settings.coverImage ? (
-            <div className="h-12 w-24 rounded bg-cover bg-center border border-zinc-200 dark:border-zinc-700" style={{ backgroundImage: `url(${workspace.settings.coverImage})` }} />
-          ) : (
-            <div className="text-xs text-zinc-500 dark:text-zinc-400">No image selected</div>
-          )}
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {Object.keys(toggleAble).map((key) => (
           <button

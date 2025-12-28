@@ -62,6 +62,7 @@ const Color: FC<props> = ({ triggerToast, isSidebarExpanded }) => {
   };
 
   const updateColor = async (color: string) => {
+    const previousColor = selectedColor;
     try {
       setSelectedColor(color);
       setWorkspace((prev) => ({
@@ -81,11 +82,23 @@ const Color: FC<props> = ({ triggerToast, isSidebarExpanded }) => {
         triggerToast.success("Workspace color updated successfully!");
       } else {
         triggerToast.error("Failed to update color.");
-        handleRevert();
+        setSelectedColor(previousColor);
+        setWorkspace((prev) => ({
+          ...prev,
+          groupTheme: previousColor,
+        }));
+        const prevRgb = getRGBFromTailwindColor(previousColor);
+        document.documentElement.style.setProperty("--group-theme", prevRgb);
       }
     } catch (error) {
       triggerToast.error("Something went wrong.");
-      handleRevert();
+      setSelectedColor(previousColor);
+      setWorkspace((prev) => ({
+        ...prev,
+        groupTheme: previousColor,
+      }));
+      const prevRgb = getRGBFromTailwindColor(previousColor);
+      document.documentElement.style.setProperty("--group-theme", prevRgb);
     }
   };
 

@@ -21,7 +21,7 @@ export default function StickyNoteAnnouncement() {
     <div className="z-0 bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl shadow-sm p-4 flex items-start space-x-4 mb-6 relative">
       <img
         src="/image.png"
-        alt="prplbyte avatar"
+        alt="PostedDevOfficial avatar"
         className="w-10 h-10 rounded-full bg-primary flex-shrink-0"
       />
       <div>
@@ -32,16 +32,22 @@ export default function StickyNoteAnnouncement() {
 
         <div className="text-zinc-800 dark:text-zinc-300 text-sm space-y-3">
           <h4 className="text-base font-semibold text-zinc-900 dark:text-white">
-            prplManagement version 1.0.5 has released!
+            Varyn version 1.0.5 has released!
           </h4>
           <p>
-            I need to keep the lights on this week, so I'm shipping a small update for prplManagement. If you don't know what prplManagement is: It's a free alternative to Hyra, with its codebase highly based on Planetary Orbit.
+            I need to keep the lights on this week, so I'm shipping a small update for Varyn. If you don't know what Varyn is: It's a free alternative to Hyra, with its codebase highly based on Planetary Orbit.
           </p>
           <div>
             <p className="font-semibold mt-2">🖥️ Live Servers</p>
             <p>
-              Looking to track your game(s) servers? prplManagement now supports
+              Looking to track your game(s) servers? Varyn now supports
 			  live server tracking with player counts and more!
+            </p>
+          </div>
+		  <div>
+            <p className="font-semibold mt-2">🎉 Promotions</p>
+            <p>
+              I've added a feature to 
             </p>
           </div>
           <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">

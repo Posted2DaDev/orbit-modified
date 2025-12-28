@@ -2,7 +2,7 @@ import prisma from "@/utils/database"
 
 // Validate API key for a given workspace
 export async function validateApiKey(apiKey: string, workspaceId: string | number) {
-  if (!apiKey || !apiKey.startsWith("orbit_")) return null
+  if (!apiKey || !apiKey.startsWith("varyn_")) return null
 
   const key = await prisma.apiKey.findUnique({ where: { key: apiKey } })
   if (!key) return null

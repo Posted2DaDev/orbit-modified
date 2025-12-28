@@ -17,7 +17,7 @@ import UserPolicyDashboard from "@/components/UserPolicyDashboard"
 import PolicyNotificationBanner from "@/components/PolicyNotificationBanner"
 import ComplianceOverviewWidget from "@/components/ComplianceOverviewWidget"
 import { useRecoilState } from "recoil"
-import { useMemo, useEffect, useState } from "react"
+import { useMemo, useEffect, useState, useRef } from "react"
 import { useRouter } from "next/router"
 import axios from "axios"
 import {
@@ -55,9 +55,12 @@ const Home: pageWithLayout = () => {
   const [loading, setLoading] = useState(true)
   const [policiesEnabled, setPoliciesEnabled] = useState(false)
   const [coverImage, setCoverImage] = useState<string | null>(null)
+  const [savingCover, setSavingCover] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const ws = workspace as any
   const user = login as any
+  const canEditHome = Array.isArray(ws?.yourPermission) && ws.yourPermission.includes("admin")
 
   const widgets: Record<string, WidgetConfig> = {
     wall: {
@@ -148,8 +151,8 @@ const Home: pageWithLayout = () => {
   }, [workspace?.groupId])
 
   useEffect(() => {
-    if ((ws as any)?.settings?.coverImage) {
-      setCoverImage((ws as any).settings.coverImage)
+    if ((ws as any)?.settings) {
+      setCoverImage((ws as any).settings.coverImage ?? null)
     }
   }, [(ws as any)?.settings?.coverImage])
 
@@ -160,33 +163,53 @@ const Home: pageWithLayout = () => {
     }, 1000)
   }
 
-  const handleCoverUpload = async (file: File) => {
-  const maxSizeInBytes = 8 * 1024 * 1024; // stay under API body limit
-  if (file.size > maxSizeInBytes) {
-    alert("Image must be smaller than 8MB");
-    return;
-  }
-    const reader = new FileReader()
-    reader.onload = async (event) => {
-      const dataUrl = event.target?.result as string
-      setCoverImage(dataUrl)
+  const persistCoverImage = async (nextImage: string | null) => {
+    const previous = coverImage
+    setCoverImage(nextImage)
+    setWorkspace({
+      ...workspace,
+      settings: {
+        ...workspace.settings,
+        coverImage: nextImage,
+      },
+    })
+    setSavingCover(true)
+    try {
+      await axios.patch(`/api/workspace/${ws.groupId}/settings/general/home`, {
+        widgets: workspace.settings.widgets,
+        coverImage: nextImage,
+      })
+    } catch (e) {
+      setCoverImage(previous)
       setWorkspace({
         ...workspace,
         settings: {
           ...workspace.settings,
-          coverImage: dataUrl,
+          coverImage: previous,
         },
       })
-      try {
-        await axios.patch(`/api/workspace/${ws.groupId}/settings/general/home`, {
-          widgets: workspace.settings.widgets,
-          coverImage: dataUrl,
-        })
-      } catch (e) {
-        // silently fail for now
-      }
+      alert("Could not save cover image. Please try again.")
+    } finally {
+      setSavingCover(false)
+    }
+  }
+
+  const handleCoverUpload = (file: File) => {
+    const maxSizeInBytes = 8 * 1024 * 1024 // stay under API body limit
+    if (file.size > maxSizeInBytes) {
+      alert("Image must be smaller than 8MB")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string
+      void persistCoverImage(dataUrl)
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleCoverRemove = () => {
+    void persistCoverImage(null)
   }
 
   return (
@@ -202,14 +225,66 @@ const Home: pageWithLayout = () => {
       >
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-black/40"></div>
+
+        {canEditHome && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png, image/jpeg"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleCoverUpload(file)
+                e.target.value = ""
+              }}
+            />
+            <div className="absolute top-4 right-4 z-20 flex gap-2">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/90 text-zinc-800 shadow-sm hover:bg-white focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary transition"
+              >
+                {savingCover ? "Saving..." : "Change cover"}
+              </button>
+              {coverImage && (
+                <button
+                  onClick={handleCoverRemove}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-black/40 text-white/90 hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary transition disabled:opacity-50"
+                  disabled={savingCover}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </>
+        )}
         
         {/* Greeting - positioned at bottom left */}
         <div className="w-full px-6 py-6 relative z-10 flex items-end">
-          <div className="bg-black/30 backdrop-blur-sm px-4 py-3 rounded-lg w-fit max-w-xl">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">
-              {text}
-            </h1>
-          </div>
+           <div className="relative">
+              <div
+                className={clsx(
+                  "transition-all duration-700 transform",
+                  titleVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
+                )}
+              >
+                <span className="text-xs font-medium text-primary uppercase tracking-wider mb-1 block">
+                  Welcome back
+                </span>
+                <h1 className="text-4xl font-extrabold text-zinc-900 dark:text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+                  {text}
+                </h1>
+                <div
+                  className={clsx(
+                    "h-1 w-16 bg-gradient-to-r from-primary to-primary/30 rounded-full mb-3 transition-all duration-1000 transform",
+                    titleVisible ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0",
+                  )}
+                ></div>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md">
+                  Here's what's happening in your workspace today
+                </p>
+              </div>
+            </div>
         </div>
       </div>
 

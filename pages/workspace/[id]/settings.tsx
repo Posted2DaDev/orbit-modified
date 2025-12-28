@@ -1,5 +1,3 @@
-"use client"
-
 import type { pageWithLayout } from "@/layoutTypes"
 import { loginState } from "@/state"
 import { IconChevronRight, IconHome, IconLock, IconFlag, IconKey, IconServer, IconBellExclamation, IconPalette, IconActivity } from "@tabler/icons-react"
@@ -130,6 +128,18 @@ const SECTIONS = {
     description: "Enable or disable workspace features",
     components: Object.entries(All)
       .filter(([key]) => key === "Guide" || key === "Sessions" || key === "Alliances" || key === "Leaderboard" || key === "Notices" || key === "Policies" || key === "LiveServers" || key === "Promotions")
+      .map(([key, Component]) => ({
+        key,
+        component: Component,
+        title: Component.title,
+      })),
+  },
+  inactivity: {
+    name: "Inactivity Notices",
+    icon: IconBellExclamation,
+    description: "Configure Discord webhooks for inactivity requests",
+    components: Object.entries(All)
+      .filter(([key]) => key === "InactivitySettings")
       .map(([key, Component]) => ({
         key,
         component: Component,

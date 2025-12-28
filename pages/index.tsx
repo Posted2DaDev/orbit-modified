@@ -185,8 +185,8 @@ const Home: NextPage = () => {
   return (
     <div>
       <Head>
-        <title>prplManagement - Workspaces</title>
-        <meta name="description" content="Manage your Roblox workspaces with prplManagement" />
+        <title>Varyn - Workspaces</title>
+        <meta name="description" content="Manage your Roblox workspaces with Varyn" />
       </Head>
 
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-800">

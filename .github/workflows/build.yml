@@ -1,4 +1,4 @@
-name: Build and Push Orbit Image
+name: Build and Push Varyn Image
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: planetaryorbit/orbit
+  IMAGE_NAME: postedDevelopment/varyn
 
 jobs:
   build-and-push:

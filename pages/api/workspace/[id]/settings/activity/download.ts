@@ -32,7 +32,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
   let xml_string = fs.readFileSync(path.join("Orbit-activity.rbxmx"), "utf8");
   res.setHeader(
     "Content-Disposition",
-    "attachment; filename=Orbit-activity.rbxmx"
+    "attachment; filename=Varyn-activity.rbxmx"
   );
 
   // Fix the protocol handling to ensure it's a valid protocol string

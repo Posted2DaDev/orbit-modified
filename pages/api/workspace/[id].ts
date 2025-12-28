@@ -54,9 +54,42 @@ export async function handler(
 	})
 
 	if (!workspace) return res.status(400).json({ success: false, error: 'Workspace not found' })
+	
+	// Log workspace status for debugging
+	console.log(`Workspace ${workspace.groupId}: isSuspended=${workspace.isSuspended}, isDeleted=${workspace.isDeleted}`)
+	
+	// Check if workspace is suspended or deleted
+	if (workspace.isSuspended) {
+		return res.status(403).json({ success: false, error: 'This workspace has been suspended' })
+	}
+	
+	if (workspace.isDeleted) {
+		return res.status(403).json({ success: false, error: 'This workspace has been deleted' })
+	}
+	
 	console.log(`Workspace found after ${Date.now() - time.getTime()}ms`)
-	const themeconfig = await getConfig('customization', workspace.groupId)
-	const homeConfig = await getConfig('home', workspace.groupId)
+	let themeconfigRaw = await getConfig('customization', workspace.groupId)
+	// Fallback to legacy 'theme' key if customization doesn't exist
+	if (!themeconfigRaw) {
+		themeconfigRaw = await getConfig('theme', workspace.groupId)
+	}
+	let themeconfig = themeconfigRaw as any
+	if (themeconfigRaw && typeof themeconfigRaw === 'string') {
+		try {
+			themeconfig = JSON.parse(themeconfigRaw)
+		} catch {
+			themeconfig = themeconfigRaw
+		}
+	}
+	const homeConfigRaw = await getConfig('home', workspace.groupId)
+	let homeConfig = homeConfigRaw as any
+	if (homeConfigRaw && typeof homeConfigRaw === 'string') {
+		try {
+			homeConfig = JSON.parse(homeConfigRaw)
+		} catch {
+			homeConfig = null
+		}
+	}
 	console.log(`Theme config found after ${Date.now() - time.getTime()}ms`)
 	const roles = await prisma.role.findMany({
 		where: {
@@ -127,8 +160,8 @@ export async function handler(
 			policiesEnabled: (await getConfig('policies', workspace.groupId))?.enabled || false,
 			liveServersEnabled: (await getConfig('live_servers', workspace.groupId))?.enabled || false,
 			promotionsEnabled: (await getConfig('promotions', workspace.groupId))?.enabled || false,
-			widgets: homeConfig?.widgets || [],
-			coverImage: homeConfig?.coverImage || null,
+			widgets: homeConfig?.widgets ?? [],
+			coverImage: homeConfig?.coverImage ?? null,
 		}
 	} })
 }

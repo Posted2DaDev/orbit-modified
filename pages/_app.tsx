@@ -92,7 +92,7 @@ function getRGBFromTailwindColor(tw: any): string {
   const colorName = tw.replace("bg-", "");
 
   if (colorName === "orbit") {
-    return "0, 112, 240";
+    return "119, 0, 255";
   }
 
   const colorMap: Record<string, string> = {
@@ -121,9 +121,9 @@ function MyApp({ Component, pageProps }: AppPropsWithLayout) {
   return (
     <RecoilRoot>
       <Head>
-        <title>prplManagement</title>
+        <title>Varyn</title>
         <script>
-		  console.info(`prplManagement - The All In One Staff Management Solution\n\nAt no point should you paste anything into this console, as it's always a scam. Staff will never ask you to do this.`);
+		  console.info(`Varyn - The All In One Staff Management Solution\n\nAt no point should you paste anything into this console, as it's always a scam. Staff will never ask you to do this.`);
         </script>
       </Head>
 

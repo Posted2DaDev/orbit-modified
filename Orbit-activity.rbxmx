@@ -7,13 +7,13 @@
 			<BinaryString name="AttributesSerialize"></BinaryString>
 			<bool name="Disabled">false</bool>
 			<Content name="LinkedSource"><null></null></Content>
-			<string name="Name">OrbitActivity</string>
+			<string name="Name">VarynActivity</string>
 			<token name="RunContext">0</token>
 			<string name="ScriptGuid">{57280D02-3DDB-4992-BA62-09F779557E92}</string>
 			<ProtectedString name="Source"><![CDATA[
 
 if game:GetService("RunService"):IsStudio() or game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0 then
-	return warn("Orbit: Your activity does not track in private servers or Studio.")
+	return warn("Varyn: Your activity does not track in private servers or Studio.")
 end
 
 -- Define services
@@ -24,14 +24,14 @@ local Players = game:GetService("Players")
 local HttpQueue = require(script.Components.HttpQueue)
 local FastWait = require(script.Components.FastWait)
 
--- Set up Orbit events
+-- Set up Varyn events
 local TovyFolder = Instance.new("Folder", ReplicatedStorage)
-TovyFolder.Name = "Orbit Assets"
+TovyFolder.Name = "Varyn Assets"
 
 local TovyEvent = Instance.new("RemoteEvent", TovyFolder)
 TovyEvent.Name = "Activity"
 
-local TovyClient = script:WaitForChild("Components"):WaitForChild("OrbitClient")
+local TovyClient = script:WaitForChild("Components"):WaitForChild("VarynClient")
 TovyClient.Event.Value = TovyEvent
 
 local Close = Instance.new("BindableEvent")
@@ -47,21 +47,21 @@ local Configuration = {
 	url = "<url>",
 	auth = "<apikey>",
 	-- Edit to your liking
-	privateEnabled = false, -- Set to false if you do not want Orbit to track private servers
-	bansEnabled = false, -- Set to false if you do not want Orbit to handle bans (This will use less HTTP requests)
+	privateEnabled = false, -- Set to false if you do not want Varyn to track private servers
+	bansEnabled = false, -- Set to false if you do not want Varyn to handle bans (This will use less HTTP requests)
 	cooldownPeriod = 30, -- The interval (seconds) between retrying failed HTTP requests
-	rankChecking = false, -- Enables rank checking on player join/leave to ensure only relevant data is sent to Orbit (RECOMMENDED)
+	rankChecking = false, -- Enables rank checking on player join/leave to ensure only relevant data is sent to Varyn (RECOMMENDED)
 	groupId = 0, -- The group ID to perform activity tracking for
-	minTrackedRank = 0,	 -- The minimum rank ID to perform activity tracking for (This value is retrieved from your Orbit instance on game launch)
+	minTrackedRank = 0,	 -- The minimum rank ID to perform activity tracking for (This value is retrieved from your Varyn instance on game launch)
 	minutesTillAFK = 2, -- How long a player can last without moving before being marked AFK
 }
 
 if Configuration.privateEnabled == false then
 	if game:GetService("RunService"):IsStudio() or game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0 then
-		return warn("Orbit: Your activity does not track in private servers or Studio.")
+		return warn("Varyn: Your activity does not track in private servers or Studio.")
 	end
 end
-warn("Orbit: Module loaded; activity will be tracked.")
+warn("Varyn: Module loaded; activity will be tracked.")
 
 
 -- Functions
@@ -95,7 +95,7 @@ local function EndSession(Player)
 		local request = HttpQueue.HttpRequest.new(
 			Configuration.url .. "/api/activity/session?type=end",
 			"POST",
-			HttpService:JSONEncode({ userid = Player.UserId, idleTime = Player["Orbit AFK Timer"].Value, messages = messageTable[Player.UserId] }),
+			HttpService:JSONEncode({ userid = Player.UserId, idleTime = Player["Varyn AFK Timer"].Value, messages = messageTable[Player.UserId] }),
 			nil,
 			{
 				["Content-Type"] = "application/json",
@@ -157,7 +157,7 @@ local function InitiateTovy(Player)
 	messageTable[Player.UserId] = 0
 	if isUserTracked(Player) then
 		local TovyAFKTimer = Instance.new("NumberValue", Player)
-		TovyAFKTimer.Name = "Orbit AFK Timer"
+		TovyAFKTimer.Name = "Varyn AFK Timer"
 		TovyClient:Clone().Parent = Player:WaitForChild("PlayerGui")
 		CreateSession(Player)
 		MovementDetection(Player)
@@ -203,7 +203,7 @@ end
 
 while true do
 	for index, Player in pairs(afkTable) do
-		local t = Player["Orbit AFK Timer"]
+		local t = Player["Varyn AFK Timer"]
 		if Players:GetPlayerByUserId(Player.UserId) and t then
 			t.Value += 1
 		else 
@@ -3454,7 +3454,7 @@ return t
 					<BinaryString name="AttributesSerialize"></BinaryString>
 					<bool name="Disabled">false</bool>
 					<Content name="LinkedSource"><null></null></Content>
-					<string name="Name">OrbitClient</string>
+					<string name="Name">VarynClient</string>
 					<token name="RunContext">0</token>
 					<string name="ScriptGuid">{EC2C7152-6EB3-4E25-8EA5-8767FF7B9CC6}</string>
 					<ProtectedString name="Source"><![CDATA[--[[
@@ -3464,8 +3464,8 @@ return t
 ▀░░▀ ▀▀▀ ▀░▀▀ ▀▀▀ ▀░░▀ ▀▀▀░ ▄▄▄█ ▀░░ ▀░░▀ ▀░░▀ ▀▀▀
 
 Author: alreadyfans
-For: Orbit
-Description: Handles Orbit activity tracking
+For: Varyn
+Description: Handles Varyn activity tracking
 
 ]]
 

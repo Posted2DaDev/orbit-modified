@@ -200,19 +200,23 @@ export default withSessionRoute(async function handler(
 
     const quotas = user.roles
       .flatMap((role) => role.quotaRoles)
-      .map((qr) => qr.quota);
+      .map((qr) => ({
+        ...qr.quota,
+        workspaceGroupId: Number(qr.quota.workspaceGroupId),
+      }));
 
     const serializedSessions = sessions.map((session) => ({
       ...session,
       userId: session.userId.toString(),
       universeId: session.universeId?.toString() || null,
       idleTime: session.idleTime?.toString() || null,
+      gameId: session.gameId?.toString() || null,
     }));
 
     const serializedAdjustments = adjustments.map((adjustment) => ({
       ...adjustment,
       userId: adjustment.userId.toString(),
-      actorId: adjustment.actorId.toString(),
+      actorId: adjustment.actorId?.toString() || null,
       actor: adjustment.actor
         ? {
             ...adjustment.actor,
@@ -224,6 +228,11 @@ export default withSessionRoute(async function handler(
     const serializedHostedSessions = hostedSessions.map((session) => ({
       ...session,
       ownerId: session.ownerId?.toString() || null,
+    }));
+
+    const serializedQuotas = quotas.map((quota) => ({
+      ...quota,
+      workspaceGroupId: Number(quota.workspaceGroupId),
     }));
 
     return res.status(200).json({
@@ -239,7 +248,7 @@ export default withSessionRoute(async function handler(
         hostedSessions: serializedHostedSessions,
         roleBasedSessionsHosted,
         roleBasedSessionsAttended,
-        quotas,
+        quotas: serializedQuotas,
         avatar,
       },
     });

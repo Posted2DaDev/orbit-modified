@@ -32,9 +32,9 @@ const Topbar: NextPage = () => {
 				<div className="flex justify-between items-center h-16">
 					<div className="flex items-center space-x-4">
 						<img
-							src='/planetary.svg'
+							src="/varyn.png"
 							className="h-8 w-32"
-							alt="Planetary logo"
+							alt="Varyn logo"
 						/>
 						<ThemeToggle />
 					</div>
