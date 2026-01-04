@@ -1,4 +1,4 @@
-import { atom, type RecoilState } from "recoil";
+import { atom, DefaultValue, type RecoilState } from "recoil";
 import { role } from "@prisma/client";
 export type workspaceinfo = {
 	groupId: number;
