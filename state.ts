@@ -87,7 +87,33 @@ const workspacestate: RecoilState<WorkspaceState> = __global.__recoilAtoms.works
 			};
 
 			if (typeof globalThis !== 'undefined' && globalThis.location) {
-				setSelf(prev => ({ ...prev, groupId: parseGroupId() }));
+				setSelf(prev => {
+					const nextGroupId = parseGroupId();
+					if (prev instanceof DefaultValue) {
+						return {
+							groupId: nextGroupId,
+							groupThumbnail: '',
+							groupName: '',
+							yourPermission: [],
+							groupTheme: '',
+							roles: [],
+							yourRole: '',
+							settings: {
+								guidesEnabled: false,
+								sessionsEnabled: false,
+								alliesEnabled: false,
+								noticesEnabled: false,
+								leaderboardEnabled: false,
+								policiesEnabled: false,
+								liveServersEnabled: false,
+								promotionsEnabled: false,
+								widgets: [],
+								coverImage: null,
+							},
+						};
+					}
+					return { ...prev, groupId: nextGroupId } as WorkspaceState;
+				});
 			}
 
 			// track client-side navigations (pushState/replaceState) + back/forward
