@@ -30,6 +30,28 @@ export type WorkspaceState = {
 	};
 };
 
+const defaultWorkspaceState: WorkspaceState = {
+	groupId: 0,
+	groupThumbnail: '',
+	groupName: '',
+	yourPermission: [] as string[],
+	groupTheme: '',
+	roles: [] as role[],
+	yourRole: '',
+	settings: {
+		guidesEnabled: false,
+		sessionsEnabled: false,
+		alliesEnabled: false,
+		noticesEnabled: false,
+		leaderboardEnabled: false,
+		policiesEnabled: false,
+		liveServersEnabled: false,
+		promotionsEnabled: false,
+		widgets: [] as string[],
+		coverImage: null,
+	},
+};
+
 export type LoginState = {
 	userId: number;
 	username: string;
@@ -58,27 +80,7 @@ const loginState: RecoilState<LoginState> = __global.__recoilAtoms.loginState ||
 
 const workspacestate: RecoilState<WorkspaceState> = __global.__recoilAtoms.workspacestate || (__global.__recoilAtoms.workspacestate = atom<WorkspaceState>({
 	key: "workspacestate",
-	default: {
-		groupId: 0,
-		groupThumbnail: '',
-		groupName: '',
-		yourPermission: [] as string[],
-		groupTheme: '',
-		roles: [] as role[],
-		yourRole: '',
-		settings: {
-			guidesEnabled: false,
-			sessionsEnabled: false,
-			alliesEnabled: false,
-			noticesEnabled: false,
-			leaderboardEnabled: false,
-			policiesEnabled: false,
-			liveServersEnabled: false,
-			promotionsEnabled: false,
-			widgets: [] as string[],
-			coverImage: null as string | null,
-		}
-	},
+	default: defaultWorkspaceState,
 		effects: [({ setSelf }) => {
 			const parseGroupId = () => {
 				const path = globalThis?.location?.pathname ?? '';
@@ -90,34 +92,20 @@ const workspacestate: RecoilState<WorkspaceState> = __global.__recoilAtoms.works
 				setSelf(prev => {
 					const nextGroupId = parseGroupId();
 					if (prev instanceof DefaultValue) {
-						return {
-							groupId: nextGroupId,
-							groupThumbnail: '',
-							groupName: '',
-							yourPermission: [],
-							groupTheme: '',
-							roles: [],
-							yourRole: '',
-							settings: {
-								guidesEnabled: false,
-								sessionsEnabled: false,
-								alliesEnabled: false,
-								noticesEnabled: false,
-								leaderboardEnabled: false,
-								policiesEnabled: false,
-								liveServersEnabled: false,
-								promotionsEnabled: false,
-								widgets: [],
-								coverImage: null,
-							},
-						};
+						return { ...defaultWorkspaceState, groupId: nextGroupId };
 					}
-					return { ...prev, groupId: nextGroupId } as WorkspaceState;
+					return { ...(prev as WorkspaceState), groupId: nextGroupId };
 				});
 			}
 
 			// track client-side navigations (pushState/replaceState) + back/forward
-			const applyFromLocation = () => setSelf(prev => ({ ...prev, groupId: parseGroupId() }));
+			const applyFromLocation = () => setSelf(prev => {
+				const nextGroupId = parseGroupId();
+				if (prev instanceof DefaultValue) {
+					return { ...defaultWorkspaceState, groupId: nextGroupId };
+				}
+				return { ...(prev as WorkspaceState), groupId: nextGroupId };
+			});
 			let originalPush: typeof history.pushState | undefined;
 			let originalReplace: typeof history.replaceState | undefined;
 
