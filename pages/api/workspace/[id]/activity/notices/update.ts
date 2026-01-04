@@ -88,7 +88,7 @@ export async function handler(
             day: 'numeric', 
             year: 'numeric' 
           });
-          const endDate = notice.endTime.toLocaleDateString('en-US', { 
+          const endDate = (notice.endTime ?? notice.startTime).toLocaleDateString('en-US', { 
             month: 'long', 
             day: 'numeric', 
             year: 'numeric' 
