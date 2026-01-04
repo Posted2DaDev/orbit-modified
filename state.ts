@@ -6,6 +6,28 @@ export type workspaceinfo = {
 				groupName: string
 }
 
+export type WorkspaceState = {
+	groupId: number;
+	groupThumbnail: string;
+	groupName: string;
+	yourPermission: string[];
+	groupTheme: string;
+	roles: role[];
+	yourRole: string;
+	settings: {
+		guidesEnabled: boolean;
+		sessionsEnabled: boolean;
+		alliesEnabled: boolean;
+		noticesEnabled: boolean;
+		leaderboardEnabled: boolean;
+		policiesEnabled: boolean;
+		liveServersEnabled: boolean;
+		promotionsEnabled: boolean;
+		widgets: string[];
+		coverImage: string | null;
+	};
+};
+
 export type LoginState = {
 	userId: number;
 	username: string;
@@ -32,7 +54,7 @@ const loginState = __global.__recoilAtoms.loginState || (__global.__recoilAtoms.
 	},
 }));
 
-const workspacestate = __global.__recoilAtoms.workspacestate || (__global.__recoilAtoms.workspacestate = atom({
+const workspacestate = __global.__recoilAtoms.workspacestate || (__global.__recoilAtoms.workspacestate = atom<WorkspaceState>({
 	key: "workspacestate",
 	default: {
 		groupId: 0,
