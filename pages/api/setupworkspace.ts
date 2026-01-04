@@ -24,6 +24,7 @@ type Data = {
   error?: string;
   user?: User & { isOwner: boolean };
   debug?: any;
+  validationErrors?: string[];
 };
 
 type requestData = {
