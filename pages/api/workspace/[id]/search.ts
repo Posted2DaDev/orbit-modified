@@ -4,7 +4,7 @@ import prisma from '@/utils/database';
 
 type SearchResults = {
   users: Array<{ userid: BigInt; username: string; picture?: string | null }>;
-  sessions: Array<{ id: string; name: string; date: Date }>;
+  sessions: Array<{ id: string; name: string | null; date: Date }>;
   policies: Array<{ id: string; name: string }>;
   documents: Array<{ id: string; title: string }>;
 };
