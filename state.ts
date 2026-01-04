@@ -1,4 +1,4 @@
-import { atom } from "recoil";
+import { atom, type RecoilState } from "recoil";
 import { role } from "@prisma/client";
 export type workspaceinfo = {
 	groupId: number;
@@ -41,7 +41,7 @@ export type LoginState = {
 const __global = globalThis as any;
 __global.__recoilAtoms = __global.__recoilAtoms || {};
 
-const loginState = __global.__recoilAtoms.loginState || (__global.__recoilAtoms.loginState = atom<LoginState>({
+const loginState: RecoilState<LoginState> = __global.__recoilAtoms.loginState || (__global.__recoilAtoms.loginState = atom<LoginState>({
 	key: "loginState",
 	default: {
 		userId: 1,
@@ -54,7 +54,7 @@ const loginState = __global.__recoilAtoms.loginState || (__global.__recoilAtoms.
 	},
 }));
 
-const workspacestate = __global.__recoilAtoms.workspacestate || (__global.__recoilAtoms.workspacestate = atom<WorkspaceState>({
+const workspacestate: RecoilState<WorkspaceState> = __global.__recoilAtoms.workspacestate || (__global.__recoilAtoms.workspacestate = atom<WorkspaceState>({
 	key: "workspacestate",
 	default: {
 		groupId: 0,
