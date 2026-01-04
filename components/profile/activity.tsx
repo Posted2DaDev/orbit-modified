@@ -29,11 +29,13 @@ import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 import { useRouter } from "next/router";
 
+type QuotaProgress = Quota & { currentValue?: number; percentage?: number };
+
 type Props = {
   timeSpent: number;
   timesPlayed: number;
   data: any;
-  quotas: Quota[];
+  quotas: QuotaProgress[];
   sessionsHosted: number;
   sessionsAttended: number;
   avatar: string;

@@ -416,6 +416,8 @@ export const getServerSideProps = withPermissionCheckSsr(
   }
 );
 
+type QuotaProgress = Quota & { currentValue?: number; percentage?: number };
+
 type pageProps = {
   notices: any;
   timeSpent: number;
@@ -434,7 +436,7 @@ type pageProps = {
     avatar: string;
   };
   userBook: any;
-  quotas: Quota[];
+  quotas: QuotaProgress[];
   sessionsHosted: number;
   sessionsAttended: number;
   isUser: boolean;
@@ -597,19 +599,21 @@ const Profile: pageWithLayout<pageProps> = ({
             historicalData.activity.sessionsHosted +
               historicalData.activity.sessionsAttended,
           data: historicalData.chartData || [0, 0, 0, 0, 0, 0, 0],
-          quotas: historicalData.activity.quotaProgress
-            ? Object.values(historicalData.activity.quotaProgress).map(
-                (qp: any) => ({
-                  id: qp.id || qp.name || "",
-                  name: qp.name || "",
-                  type: qp.type || "",
-                  value: qp.requirement || 0,
-                  workspaceGroupId: parseInt(router.query.id as string),
-                  currentValue: qp.value || 0,
-                  percentage: qp.percentage || 0,
-                })
-              )
-            : [],
+        quotas: historicalData.activity.quotaProgress
+          ? Object.values(historicalData.activity.quotaProgress).map(
+            (qp: any) => ({
+              id: qp.id || qp.name || "",
+              name: qp.name || "",
+              type: qp.type || "",
+              value: qp.requirement || 0,
+              workspaceGroupId: parseInt(router.query.id as string),
+              description: qp.description ?? null,
+              sessionType: qp.sessionType ?? null,
+              currentValue: qp.value || 0,
+              percentage: qp.percentage || 0,
+            })
+          )
+          : [],
           sessionsHosted: historicalData.activity.sessionsHosted,
           sessionsAttended: historicalData.activity.sessionsAttended,
           sessions: historicalData.sessions || [],
