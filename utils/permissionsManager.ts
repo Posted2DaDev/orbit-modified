@@ -16,7 +16,7 @@ const PERMISSIONS_CACHE_DURATION = 120000;
 type MiddlewareData = {
   handler: NextApiHandler;
   next: any;
-  permissions: string;
+  permissions: string | string[];
 };
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -61,7 +61,7 @@ async function retryNobloxRequest<T>(
 
 export function withPermissionCheck(
   handler: NextApiHandler,
-  permission?: string
+  permission?: string | string[]
 ) {
   return withSessionRoute(async (req: NextApiRequest, res: NextApiResponse) => {
     const uid = req.session.userid;
@@ -95,7 +95,10 @@ export function withPermissionCheck(
       const userrole = cached.data;
       if (userrole.isOwnerRole) return handler(req, res);
       if (!permission) return handler(req, res);
-      if (userrole.permissions?.includes(permission)) return handler(req, res);
+      const allowed = Array.isArray(permission)
+        ? permission.some(p => userrole.permissions?.includes(p))
+        : userrole.permissions?.includes(permission);
+      if (allowed) return handler(req, res);
       return res.status(401).json({ success: false, error: "Unauthorized" });
     }
 
@@ -125,14 +128,17 @@ export function withPermissionCheck(
     
     if (userrole.isOwnerRole) return handler(req, res);
     if (!permission) return handler(req, res);
-    if (userrole.permissions?.includes(permission)) return handler(req, res);
+    const allowed = Array.isArray(permission)
+      ? permission.some(p => userrole.permissions?.includes(p))
+      : userrole.permissions?.includes(permission);
+    if (allowed) return handler(req, res);
     return res.status(401).json({ success: false, error: "Unauthorized" });
   });
 }
 
 export function withPermissionCheckSsr(
   handler: (context: GetServerSidePropsContext) => Promise<any>,
-  permission?: string
+  permission?: string | string[]
 ) {
   return withSessionSsr(async (context) => {
     const { req, res, query } = context;
@@ -173,7 +179,10 @@ export function withPermissionCheckSsr(
       const userrole = cached.data;
       if (userrole.isOwnerRole) return handler(context);
       if (!permission) return handler(context);
-      if (userrole.permissions?.includes(permission)) return handler(context);
+      const allowed = Array.isArray(permission)
+        ? permission.some(p => userrole.permissions?.includes(p))
+        : userrole.permissions?.includes(permission);
+      if (allowed) return handler(context);
       return {
         redirect: {
           destination: "/",
@@ -219,9 +228,12 @@ export function withPermissionCheckSsr(
     permissionsCache.set(cacheKey, { data: userrole, timestamp: now });
     const hasPermission =
       !permission ||
-      user?.roles.some(
-        (role) => role.isOwnerRole || role.permissions.includes(permission)
-      );
+      user?.roles.some((role) => {
+        if (role.isOwnerRole) return true;
+        return Array.isArray(permission)
+          ? permission.some(p => role.permissions.includes(p))
+          : role.permissions.includes(permission);
+      });
 
     if (!hasPermission) {
       return {
