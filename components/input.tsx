@@ -21,6 +21,7 @@ const Input = React.forwardRef<
 >(({ placeholder, label, classoverride = "", id, onChange, onBlur, name, type, textarea, append, prepend, disabled, value }, ref) => {
 	const formContext = useFormContext();
 	const errors = formContext ? (formContext.formState?.errors as any) : {};
+	const fieldError = name ? errors?.[name] : undefined;
 	return (
 		<div className="mb-3">
 			{label &&
@@ -62,11 +63,11 @@ const Input = React.forwardRef<
 				ref={(ref as any)}
 				value={value}
 				className={
-					"text-zinc-600 dark:text-white rounded-lg p-2 border-2 border-gray-300  dark:border-zinc-500 w-full bg-zinc-50 focus-visible:outline-none dark:bg-zinc-700 " + classoverride + `${errors[name] ? " focus-visible:ring-red-500 focus-visible:border-red-500" : "focus-visible:ring-blue-500 focus-visible:border-blue-500"}`
+					"text-zinc-600 dark:text-white rounded-lg p-2 border-2 border-gray-300  dark:border-zinc-500 w-full bg-zinc-50 focus-visible:outline-none dark:bg-zinc-700 " + classoverride + `${fieldError ? " focus-visible:ring-red-500 focus-visible:border-red-500" : "focus-visible:ring-blue-500 focus-visible:border-blue-500"}`
 				}
 			/>}
-			{errors[name] && (
-				<p className="text-red-500 block h-10 -mb-7 mt-1">{(errors[name]?.message as string)}</p>
+			{fieldError && (
+				<p className="text-red-500 block h-10 -mb-7 mt-1">{(fieldError?.message as string)}</p>
 			)}
 		</div>
 	)
