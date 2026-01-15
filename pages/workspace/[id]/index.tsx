@@ -16,6 +16,7 @@ import NewToTeam from "@/components/newmembers"
 import UserPolicyDashboard from "@/components/UserPolicyDashboard"
 import PolicyNotificationBanner from "@/components/PolicyNotificationBanner"
 import ComplianceOverviewWidget from "@/components/ComplianceOverviewWidget"
+import ComplianceStatus from "@/components/ComplianceStatus"
 import { useRecoilState } from "recoil"
 import { useMemo, useEffect, useState, useRef } from "react"
 import { useRouter } from "next/router"
@@ -313,6 +314,14 @@ const Home: pageWithLayout = () => {
         {Array.isArray((ws as any).settings?.widgets) && (ws as any).settings.widgets.includes("new_members") && (
           <div className="mb-8 z-0 relative">
             <NewToTeam />
+          </div>
+        )}
+        {policiesEnabled && (
+          <div className="mb-8 z-0 relative">
+            <ComplianceStatus 
+              workspaceId={(ws as any).groupId} 
+              variant="compact"
+            />
           </div>
         )}
         <div className="mb-8 z-0 relative">

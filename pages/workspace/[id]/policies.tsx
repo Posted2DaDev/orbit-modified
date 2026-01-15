@@ -34,7 +34,7 @@ import {
 } from "@tabler/icons-react";
 import clsx from 'clsx';
 import { Toaster } from 'react-hot-toast';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import PolicyLinkManager from '@/components/PolicyLinkManager';
@@ -2095,17 +2095,19 @@ const PoliciesPage: pageWithLayout<pageProps> = ({ documents, roles }) => {
 			)}
 
 			{/* Policy Link Manager Modal */}
-			{selectedDocumentForLink && (
-				<PolicyLinkManager
-					isOpen={showLinkManager}
-					onClose={() => {
-						setShowLinkManager(false);
-						setSelectedDocumentForLink(null);
-					}}
-					document={selectedDocumentForLink}
-					workspaceId={router.query.id as string}
-				/>
-			)}
+			<AnimatePresence>
+				{showLinkManager && selectedDocumentForLink && (
+					<PolicyLinkManager
+						isOpen={showLinkManager}
+						onClose={() => {
+							setShowLinkManager(false);
+							setSelectedDocumentForLink(null);
+						}}
+						document={selectedDocumentForLink}
+						workspaceId={router.query.id as string}
+					/>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 };

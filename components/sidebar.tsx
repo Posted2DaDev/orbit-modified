@@ -37,6 +37,7 @@ import {
   IconTrophyFilled,
   IconArrowsUpDown,
   IconBan,
+  IconMail,
 } from "@tabler/icons-react"
 import axios from "axios"
 import clsx from "clsx"
@@ -163,7 +164,14 @@ const Sidebar: NextPage<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
     ...(policiesEnabled ? [{ name: "Policies", href: "/workspace/[id]/policies", icon: IconShield, filledIcon: IconShield, accessible: workspace.yourPermission.includes("manage_policies") || workspace.yourPermission.includes("admin") }] : []),
 	...(liveServersEnabled ? [{ name: "Live Servers", href: "/workspace/[id]/live", icon: IconServer, filledIcon: IconServer, accessible: workspace.yourPermission.includes("view_servers") || workspace.yourPermission.includes("admin") }] : []),
     ...(promotionsEnabled ? [{ name: "Promotions", href: "/workspace/[id]/promotions", icon: IconArrowsUpDown, filledIcon: IconArrowsUpDown, accessible: workspace.yourPermission.includes("manage_promotions") || workspace.yourPermission.includes("view_promotions") || workspace.yourPermission.includes("admin") }] : []),
-    { name: "Settings", href: "/workspace/[id]/settings", icon: IconSettings, filledIcon: IconSettingsFilled, accessible: workspace.yourPermission.includes("admin") },    ...(login.isOwner ? [{ name: "Workspace Admin", href: "/admin/workspaces", icon: IconBan, filledIcon: IconBan, accessible: true }] : []),  ];
+    { name: "Settings", href: "/workspace/[id]/settings", icon: IconSettings, filledIcon: IconSettingsFilled, accessible: workspace.yourPermission.includes("admin") },
+    ...(login.isOwner
+      ? [
+          { name: "Admin Messages", href: "/admin/messages", icon: IconMail, filledIcon: IconMail, accessible: true },
+          { name: "Workspace Admin", href: "/admin/workspaces", icon: IconBan, filledIcon: IconBan, accessible: true },
+        ]
+      : []),
+  ];
 
   const gotopage = (page: string) => {
     const finalPath = page.includes("[id]") ? page.replace("[id]", workspace.groupId.toString()) : page

@@ -391,6 +391,8 @@ model workspaceMember {
   birthdayDay                              Int?
   birthdayMonth                            Int?
   discordId                                String?
+  email                                    String?
+  emailVerified                            Boolean?          @default(false)
   lineManagerId                            BigInt?
   timezone                                 String?
   isAdmin                                  Boolean?           @default(false)

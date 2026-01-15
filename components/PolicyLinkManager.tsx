@@ -153,15 +153,27 @@ const PolicyLinkManager: FC<PolicyLinkManagerProps> = ({
 		window.open(url, '_blank');
 	};
 
-	if (!isOpen) return null;
-
 	return (
-		<div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+		<motion.div
+			initial={{ opacity: 0 }}
+			animate={{ opacity: isOpen ? 1 : 0 }}
+			exit={{ opacity: 0 }}
+			transition={{ duration: 0.18 }}
+			className={clsx(
+				"fixed inset-0 flex items-center justify-center z-[9999] p-4",
+				isOpen ? "bg-black/50" : "pointer-events-none"
+			)}
+			onClick={(e) => {
+				if (e.target === e.currentTarget) onClose();
+			}}
+		>
 			<motion.div
-				initial={{ opacity: 0, scale: 0.98 }}
-				animate={{ opacity: 1, scale: 1 }}
-				transition={{ duration: 0.18 }}
+				initial={{ opacity: 0, scale: 0.95 }}
+				animate={{ opacity: isOpen ? 1 : 0, scale: isOpen ? 1 : 0.95 }}
+				exit={{ opacity: 0, scale: 0.95 }}
+				transition={{ duration: 0.2 }}
 				className="w-full max-w-4xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden max-h-[90vh] flex flex-col"
+				onClick={(e) => e.stopPropagation()}
 			>
 				{/* Header */}
 				<div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0">
@@ -408,7 +420,7 @@ const PolicyLinkManager: FC<PolicyLinkManagerProps> = ({
 					</div>
 				</div>
 			</motion.div>
-		</div>
+		</motion.div>
 	);
 };
 

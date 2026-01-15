@@ -1,6 +1,7 @@
 import Activity from "@/components/profile/activity";
 import Book from "@/components/profile/book";
 import Notices from "@/components/profile/notices";
+import ComplianceStatus from "@/components/ComplianceStatus";
 import { Toaster } from "react-hot-toast";
 import { InformationPanel } from "@/components/profile/info";
 import workspace from "@/layouts/workspace";
@@ -28,6 +29,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconCalendar,
+  IconShield,
 } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -755,6 +757,18 @@ const Profile: pageWithLayout<pageProps> = ({
                   Notices
                 </Tab>
               )}
+              <Tab
+                className={({ selected }) =>
+                  `flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                    selected
+                      ? "bg-white dark:bg-zinc-800 text-primary shadow-sm"
+                      : "text-zinc-600 dark:text-zinc-300 hover:bg-white/50 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-white"
+                  }`
+                }
+              >
+                <IconShield className="w-4 h-4" />
+                Compliance
+              </Tab>
             </Tab.List>
             <Tab.Panels className="p-6 bg-white dark:bg-zinc-800 rounded-b-xl">
               <Tab.Panel>
@@ -817,6 +831,12 @@ const Profile: pageWithLayout<pageProps> = ({
                   />
                 </Tab.Panel>
               )}
+              <Tab.Panel>
+                <ComplianceStatus
+                  workspaceId={parseInt(router.query.id as string, 10)}
+                  variant="full"
+                />
+              </Tab.Panel>
             </Tab.Panels>
           </Tab.Group>
         </div>

@@ -8,6 +8,7 @@ import {
   IconCheck,
   IconX,
   IconCalendar,
+  IconMail,
 } from "@tabler/icons-react";
 import axios from "axios";
 import { useRouter } from "next/router";
@@ -49,6 +50,13 @@ export function InformationPanel({ user, isUser, isAdmin }: InformationPanelProp
   const [month, setMonth] = useState<string>(user.birthdayMonth ? String(user.birthdayMonth) : "");
   const [day, setDay] = useState<string>(user.birthdayDay ? String(user.birthdayDay) : "");
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState<string>("");
+  const [emailVerified, setEmailVerified] = useState<boolean>(false);
+  const [emailEditing, setEmailEditing] = useState(false);
+  const [emailInput, setEmailInput] = useState<string>("");
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailLoading, setEmailLoading] = useState(false);
   const router = useRouter();
 
   let workspaceId: string | null = null;
@@ -85,6 +93,40 @@ export function InformationPanel({ user, isUser, isAdmin }: InformationPanelProp
     };
   }, [workspaceId, user?.userid]);
 
+  useEffect(() => {
+    if (!workspaceId || !user?.userid) return;
+    let cancelled = false;
+    setEmailLoading(true);
+    const endpoints = [
+      `/api/workspace/${workspaceId}/email/${user.userid}`,
+      `/api/workspace/${workspaceId}/email`,
+    ];
+
+    (async () => {
+      for (const endpoint of (isUser ? endpoints.slice(1) : endpoints)) {
+        try {
+          const res = await axios.get(endpoint);
+          if (cancelled) return;
+          setEmail(res.data?.email ?? "");
+          setEmailVerified(Boolean(res.data?.emailVerified));
+          return;
+        } catch (err) {
+          // Try next endpoint
+        }
+      }
+      if (!cancelled) {
+        setEmail("");
+        setEmailVerified(false);
+      }
+    })().finally(() => {
+      if (!cancelled) setEmailLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId, user?.userid, isUser]);
+
   const daysInMonth = (m: number) => {
     if (m === 2) return 28;
     if ([4, 6, 9, 11].includes(m)) return 30;
@@ -108,6 +150,26 @@ export function InformationPanel({ user, isUser, isAdmin }: InformationPanelProp
       setEditing(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEmailSave = async () => {
+    if (!workspaceId) return;
+    setEmailError(null);
+    setEmailSaving(true);
+    try {
+      const payload = { email: emailInput.trim() ? emailInput.trim() : null };
+      const res = isUser
+        ? await axios.post(`/api/workspace/${workspaceId}/email`, payload)
+        : await axios.put(`/api/workspace/${workspaceId}/email/${user.userid}`, payload);
+      setEmail(res.data?.email ?? "");
+      setEmailVerified(Boolean(res.data?.emailVerified));
+      setEmailEditing(false);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Failed to update email";
+      setEmailError(msg);
+    } finally {
+      setEmailSaving(false);
     }
   };
 
@@ -159,6 +221,76 @@ export function InformationPanel({ user, isUser, isAdmin }: InformationPanelProp
                   <div className="text-xs text-zinc-500 dark:text-zinc-400">Status</div>
                   <div className="text-sm font-medium text-zinc-500 dark:text-zinc-100">{user.registered ? "Registered" : "Unregistered"}</div>
                 </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-3">
+                  <IconMail className="w-5 h-5 text-[#ff0099]" />
+                  <div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400">Email (optional)</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="text-sm font-medium text-zinc-500 dark:text-zinc-100">
+                        {emailLoading ? "Loading..." : email || "Not set"}
+                      </div>
+                      {email && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200">
+                          {emailVerified ? "Verified" : "Unverified"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {canEdit && !emailEditing && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => {
+                        setEmailEditing(true);
+                        setEmailInput(email || "");
+                        setEmailError(null);
+                      }}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#ff0099] text-white text-sm"
+                      aria-label="Edit email"
+                    >
+                      <IconPencil className="w-4 h-4" />
+                      <span>{email ? "Update" : "Add"} email</span>
+                    </button>
+                  </div>
+                )}
+
+                {emailEditing && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <label className="sr-only">Email</label>
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="name@example.com"
+                      className="border rounded px-2 py-1 w-64 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-gray-300 dark:border-zinc-600"
+                    />
+
+                    <button
+                      onClick={handleEmailSave}
+                      disabled={emailSaving}
+                      className="ml-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#ff0099] text-white text-sm disabled:opacity-60"
+                    >
+                      {emailSaving ? "Saving..." : "Save"}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setEmailEditing(false);
+                        setEmailInput(email || "");
+                        setEmailError(null);
+                      }}
+                      className="ml-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm text-zinc-900 dark:text-zinc-100 border-gray-300 dark:border-zinc-600"
+                    >
+                      Cancel
+                    </button>
+
+                    {emailError && <div className="text-xs text-red-500">{emailError}</div>}
+                  </div>
+                )}
               </div>
 
               <div>

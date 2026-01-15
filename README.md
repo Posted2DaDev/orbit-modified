@@ -9,7 +9,7 @@
     <img height="40px" src=".github/logo.png"></img>
     <h1>Orbit by Team Planetary</h1>
   </div>
-    <img src="https://img.shields.io/badge/version-v2.1.6beta6-purple"></img>
+    <img src="https://img.shields.io/badge/version-v1.0.5beta5-purple"></img>
   <ul>
     <li><a href="#about">About</a></li>
     <li><a href="#why-consider">Why consider</a></li>
@@ -94,6 +94,17 @@
   <ul>
     <li><code>SESSION_SECRET</code> – A strong secret string (e.g. generated via <code>openssl rand -base64 32</code>)</li>
     <li><code>DATABASE_URL</code> – Your connection string (e.g. hosted on Supabase, Railway, Neon, etc.)</li>
+  </ul>
+
+  <h2>📧 Email delivery (optional)</h2>
+  <p>Configure SMTP to enable admin broadcasts and per-user email storage:</p>
+  <ul>
+    <li><code>EMAIL_SMTP_HOST</code> – Mail server host (e.g. your Mailcow hostname)</li>
+    <li><code>EMAIL_SMTP_PORT</code> – SMTP port (supports custom ports)</li>
+    <li><code>EMAIL_SMTP_USER</code> / <code>EMAIL_SMTP_PASS</code> – SMTP credentials</li>
+    <li><code>EMAIL_FROM</code> – From address shown to recipients</li>
+    <li><code>EMAIL_SMTP_SECURE</code> – Set to <code>true</code> for TLS/SMTPS</li>
+    <li><code>EMAIL_SMTP_ALLOW_SELF_SIGNED</code> – Set to <code>true</code> if your SMTP uses a self-signed cert</li>
   </ul>
 
   <h2>License</h2>
