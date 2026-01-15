@@ -1,22 +1,20 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth/next";
+import { withSessionRoute } from "@/lib/withSession";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/utils/email";
-import { authOptions } from "@/pages/api/auth/[...nextauth].ts";
 
 /**
  * Verify email with code
  * POST /api/workspace/[id]/email-verify/confirm
  * Body: { email: string, code: string }
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withSessionRoute(async function handler(req: NextApiRequest, res: NextApiResponse) {
 	if (req.method !== "POST") {
 		return res.status(405).json({ error: "Method not allowed" });
 	}
 
 	try {
-		const session = await getServerSession(req, res, authOptions);
-		if (!session?.user?.id) {
+		if (!req.session?.userid) {
 			return res.status(401).json({ error: "Not authenticated" });
 		}
 
@@ -34,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			where: {
 				workspaceGroupId_userId_email: {
 					workspaceGroupId: workspaceId,
-					userId: BigInt(session.user.id),
+					userId: BigInt(req.session.userid),
 					email: trimmedEmail,
 				},
 			},
@@ -58,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 		// Mark token as used and update user email
 		const user = await prisma.user.findUnique({
-			where: { userid: BigInt(session.user.id) },
+			where: { userid: BigInt(req.session.userid) },
 		});
 
 		await Promise.all([
@@ -70,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				where: {
 					workspaceGroupId_userId: {
 						workspaceGroupId: workspaceId,
-						userId: BigInt(session.user.id),
+						userId: BigInt(req.session.userid),
 					},
 				},
 				data: {
@@ -126,4 +124,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		console.error("Email verification error:", error);
 		return res.status(500).json({ error: "Failed to verify email" });
 	}
-}
+});

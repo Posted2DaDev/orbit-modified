@@ -93,19 +93,18 @@ export default withSessionRoute(async function handler(
       });
     });
 
-    if (userHistory.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "No activity history found for this user",
-      });
-    }
-
     if (periodEnd) {
       const history = userHistory[0];
       if (!history) {
-        return res.status(404).json({
-          success: false,
-          error: "No activity history found for this period",
+        return res.status(200).json({
+          success: true,
+          data: {
+            user: null,
+            period: null,
+            activity: null,
+            sessions: [],
+            adjustments: [],
+          },
         });
       }
 

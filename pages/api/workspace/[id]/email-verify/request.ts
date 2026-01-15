@@ -1,22 +1,20 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth/next";
+import { withSessionRoute } from "@/lib/withSession";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/utils/email";
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
 /**
  * Request email verification code
  * POST /api/workspace/[id]/email-verify/request
  * Body: { email: string }
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default withSessionRoute(async function handler(req: NextApiRequest, res: NextApiResponse) {
 	if (req.method !== "POST") {
 		return res.status(405).json({ error: "Method not allowed" });
 	}
 
 	try {
-		const session = await getServerSession(req, res, authOptions);
-		if (!session?.user?.id) {
+		if (!req.session?.userid) {
 			return res.status(401).json({ error: "Not authenticated" });
 		}
 
@@ -39,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			where: {
 				workspaceGroupId_userId: {
 					workspaceGroupId: workspaceId,
-					userId: BigInt(session.user.id),
+					userId: BigInt(req.session.userid),
 				},
 			},
 		});
@@ -53,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 			where: {
 				workspaceGroupId_userId: {
 					workspaceGroupId: workspaceId,
-					userId: BigInt(session.user.id),
+					userId: BigInt(req.session.userid),
 				},
 			},
 		});
@@ -69,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		await prisma.emailVerificationToken.deleteMany({
 			where: {
 				workspaceGroupId: workspaceId,
-				userId: BigInt(session.user.id),
+				userId: BigInt(req.session.userid),
 				usedAt: null,
 			},
 		});
@@ -79,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		const token = await prisma.emailVerificationToken.create({
 			data: {
 				workspaceGroupId: workspaceId,
-				userId: BigInt(session.user.id),
+				userId: BigInt(req.session.userid),
 				email: trimmedEmail,
 				code,
 				expiresAt,
@@ -137,4 +135,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		console.error("Email verification request error:", error);
 		return res.status(500).json({ error: "Failed to send verification code" });
 	}
-}
+});
