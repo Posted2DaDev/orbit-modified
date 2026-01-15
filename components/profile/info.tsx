@@ -9,10 +9,12 @@ import {
   IconX,
   IconCalendar,
   IconMail,
+  IconAlertCircle,
 } from "@tabler/icons-react";
 import axios from "axios";
 import { useRouter } from "next/router";
 import Confetti from "react-confetti";
+import toast from "react-hot-toast";
 
 type InformationPanelProps = {
   user: {
@@ -57,6 +59,14 @@ export function InformationPanel({ user, isUser, isAdmin }: InformationPanelProp
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState(false);
+  
+  // Email verification flow state
+  const [verificationStep, setVerificationStep] = useState<"idle" | "pending" | "confirm">("idle");
+  const [verificationCode, setVerificationCode] = useState<string>("");
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string>("");
+  
   const router = useRouter();
 
   let workspaceId: string | null = null;
@@ -158,18 +168,72 @@ export function InformationPanel({ user, isUser, isAdmin }: InformationPanelProp
     setEmailError(null);
     setEmailSaving(true);
     try {
-      const payload = { email: emailInput.trim() ? emailInput.trim() : null };
-      const res = isUser
-        ? await axios.post(`/api/workspace/${workspaceId}/email`, payload)
-        : await axios.put(`/api/workspace/${workspaceId}/email/${user.userid}`, payload);
-      setEmail(res.data?.email ?? "");
-      setEmailVerified(Boolean(res.data?.emailVerified));
-      setEmailEditing(false);
+      const trimmedEmail = emailInput.trim();
+      
+      // If changing to a new email, start verification flow
+      if (trimmedEmail && trimmedEmail !== email) {
+        setPendingEmail(trimmedEmail);
+        setVerificationStep("pending");
+        setVerificationLoading(true);
+        
+        try {
+          await axios.post(`/api/workspace/${workspaceId}/email-verify/request`, {
+            email: trimmedEmail,
+          });
+          
+          toast.success("Verification code sent to your email");
+          setVerificationStep("confirm");
+          setEmailEditing(false);
+        } catch (err: any) {
+          const msg = err?.response?.data?.error || "Failed to send verification code";
+          setVerificationError(msg);
+          setVerificationStep("idle");
+          toast.error(msg);
+        } finally {
+          setVerificationLoading(false);
+        }
+      } else if (!trimmedEmail) {
+        // Clear email
+        const res = isUser
+          ? await axios.post(`/api/workspace/${workspaceId}/email`, { email: null })
+          : await axios.put(`/api/workspace/${workspaceId}/email/${user.userid}`, { email: null });
+        setEmail("");
+        setEmailVerified(false);
+        setEmailEditing(false);
+        toast.success("Email removed");
+      }
     } catch (err: any) {
       const msg = err?.response?.data?.error || "Failed to update email";
       setEmailError(msg);
     } finally {
       setEmailSaving(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!workspaceId || !pendingEmail) return;
+    setVerificationLoading(true);
+    setVerificationError(null);
+    
+    try {
+      await axios.post(`/api/workspace/${workspaceId}/email-verify/confirm`, {
+        email: pendingEmail,
+        code: verificationCode.trim(),
+      });
+      
+      setEmail(pendingEmail);
+      setEmailVerified(true);
+      setVerificationStep("idle");
+      setVerificationCode("");
+      setPendingEmail("");
+      setEmailInput("");
+      toast.success("Email verified successfully!");
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || "Failed to verify email";
+      setVerificationError(msg);
+      toast.error(msg);
+    } finally {
+      setVerificationLoading(false);
     }
   };
 
@@ -233,15 +297,65 @@ export function InformationPanel({ user, isUser, isAdmin }: InformationPanelProp
                         {emailLoading ? "Loading..." : email || "Not set"}
                       </div>
                       {email && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200">
-                          {emailVerified ? "Verified" : "Unverified"}
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+                          emailVerified 
+                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                            : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                        }`}>
+                          {emailVerified ? "✓ Verified" : "⏳ Unverified"}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {canEdit && !emailEditing && (
+                {/* Verification pending state */}
+                {verificationStep === "confirm" && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                    <div className="flex gap-2 mb-3">
+                      <IconAlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Verify your email</p>
+                        <p className="text-xs text-blue-800 dark:text-blue-200 mb-3">
+                          We sent a 6-digit code to <strong>{pendingEmail}</strong>
+                        </p>
+                        <input
+                          type="text"
+                          maxLength={6}
+                          value={verificationCode}
+                          onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+                          placeholder="000000"
+                          className="w-32 px-2 py-1.5 text-center text-lg font-mono border border-blue-300 dark:border-blue-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 mb-2"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleVerifyEmail}
+                            disabled={verificationLoading || verificationCode.length !== 6}
+                            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded disabled:opacity-50"
+                          >
+                            {verificationLoading ? "Verifying..." : "Verify"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setVerificationStep("idle");
+                              setVerificationCode("");
+                              setPendingEmail("");
+                              setEmailInput("");
+                            }}
+                            className="px-3 py-1.5 text-sm border border-zinc-300 dark:border-zinc-600 rounded text-zinc-900 dark:text-zinc-100"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {verificationError && (
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-2">{verificationError}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {canEdit && !emailEditing && verificationStep !== "confirm" && (
                   <div className="mt-3">
                     <button
                       onClick={() => {
@@ -258,7 +372,7 @@ export function InformationPanel({ user, isUser, isAdmin }: InformationPanelProp
                   </div>
                 )}
 
-                {emailEditing && (
+                {emailEditing && verificationStep !== "confirm" && (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <label className="sr-only">Email</label>
                     <input
@@ -274,7 +388,7 @@ export function InformationPanel({ user, isUser, isAdmin }: InformationPanelProp
                       disabled={emailSaving}
                       className="ml-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#ff0099] text-white text-sm disabled:opacity-60"
                     >
-                      {emailSaving ? "Saving..." : "Save"}
+                      {emailSaving ? "Sending code..." : "Continue"}
                     </button>
 
                     <button

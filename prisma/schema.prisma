@@ -702,6 +702,21 @@ model QuotaDepartment {
   @@unique([quotaId, departmentId])
 }
 
+model EmailVerificationToken {
+  id               String    @id @default(uuid()) @db.Uuid
+  workspaceGroupId Int
+  userId           BigInt
+  email            String    // The new email being verified
+  code             String    // 6-digit code
+  createdAt        DateTime  @default(now())
+  expiresAt        DateTime  // Expires in 24 hours
+  usedAt           DateTime?
+
+  @@unique([workspaceGroupId, userId, email])
+  @@index([workspaceGroupId, userId])
+  @@index([email])
+}
+
 model department {
   id               String             @id @unique @db.Uuid
   name             String
